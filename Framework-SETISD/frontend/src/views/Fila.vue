@@ -508,7 +508,7 @@ const notaDaAba = computed(() => {
     a_chamar: '',
     em_contato: `O paciente tem ${prazo} horas para confirmar a data oferecida. Sem resposta, a vaga vai para o próximo da fila (combinado com a Central em 06/11). Os registros marcados como exemplo são de demonstração.`,
     sem_contato: 'Telefone não atende ou número inválido. Tente de novo ou registre o cancelamento com o motivo.',
-    finalizados: 'Agendamentos e cancelamentos registrados hoje. Para corrigir um engano, abra o paciente e registre de novo; o histórico guarda os dois registros.',
+    finalizados: 'Agendamentos e cancelamentos registrados hoje. Para corrigir um engano, abra o paciente e use “Desfazer este registro”; o histórico guarda os dois.',
   }[aba.value];
 });
 

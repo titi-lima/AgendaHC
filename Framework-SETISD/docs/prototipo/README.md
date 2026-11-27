@@ -37,7 +37,7 @@ cp .env.example .env
 ./dev.sh
 ```
 
-Por padrão o sistema lê `data/solicitacoes_sinteticas.csv`. Acesse http://localhost:5173 com o login mock `admin` / `admin`. Na primeira execução o sistema cria as regras e listas de exemplo em `data/app.db`.
+Se você já rodou uma versão anterior, apague `data/app.db` antes: o banco local não tem migração e é recriado com os exemplos na subida. Por padrão o sistema lê `data/solicitacoes_sinteticas.csv`. Acesse http://localhost:5173 com o login mock `admin` / `admin`. Na primeira execução o sistema cria as regras e listas de exemplo em `data/app.db`.
 
 Testes e auditoria do framework:
 

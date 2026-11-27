@@ -154,6 +154,15 @@
                 <p class="mt-1 text-ink text-pretty">{{ i.preparo.texto }}</p>
               </details>
               <button
+                v-if="finalizado(i.status)"
+                type="button"
+                @click="desfazerRegistro(i)"
+                :disabled="salvando"
+                class="mt-2 text-xs font-bold text-acao hover:text-acao-hover underline underline-offset-2 disabled:opacity-60"
+              >
+                Desfazer este registro
+              </button>
+              <button
                 v-if="!finalizado(i.status) && aberto !== chaveItem(i)"
                 type="button"
                 @click="abrirRegistro(i)"
@@ -563,6 +572,26 @@ async function registrar(i: ItemFila) {
     document.getElementById(`exame-${chaveDom(i)}`)?.focus();
   } catch (e: any) {
     erroForm.value = e?.response?.data?.detail ?? 'Não foi possível registrar. Tente de novo.';
+  } finally {
+    salvando.value = false;
+  }
+}
+
+async function desfazerRegistro(i: ItemFila) {
+  salvando.value = true;
+  try {
+    await api.post('/api/fila/tratamentos/desfazer', {
+      itens: [{ codigo_solicitacao: i.codigo_solicitacao, codigo_exame: i.codigo_exame }],
+    });
+    await carregar();
+    const atual = paciente.value?.itens.find((x) => chaveItem(x) === chaveItem(i));
+    emit('alterado', {
+      tipo: 'tratamento',
+      mensagem: `${exameCurto(i.nome_exame)}: registro desfeito.`,
+      destino: DESTINO[(atual?.status ?? 'PENDENTE') as StatusItem],
+    });
+  } catch (e: any) {
+    erroCarga.value = e?.response?.data?.detail ?? 'Não foi possível desfazer.';
   } finally {
     salvando.value = false;
   }
