@@ -1,6 +1,16 @@
 <template>
   <div class="px-6 py-5 max-w-[1280px] space-y-6">
-    <p v-if="dados" class="text-xs text-ink-muted">{{ dados.fonte }} · indicadores calculados na leitura</p>
+    <div v-if="dados" class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-xs text-ink-muted">{{ dados.fonte }} · indicadores calculados na leitura</p>
+      <button
+        type="button"
+        @click="exportarCsv"
+        class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-acao hover:bg-acao-suave"
+      >
+        <ArrowDownTrayIcon class="h-4 w-4" aria-hidden="true" />
+        Exportar resumo (CSV)
+      </button>
+    </div>
 
     <div v-if="erro && !dados" class="rounded-md border border-separar-bg bg-surface p-4 text-sm" role="alert">
       <p class="font-bold text-separar-ink">Não foi possível carregar o painel.</p>
@@ -47,6 +57,59 @@
           </ul>
         </div>
       </section>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <section class="rounded-lg bg-surface ring-1 ring-line p-5" aria-labelledby="titulo-prioridade">
+          <h2 id="titulo-prioridade" class="text-base font-extrabold text-ink">A lista de prioridade está funcionando?</h2>
+          <p class="mt-0.5 text-xs text-ink-muted">Espera mediana dos exames pendentes de quem está na lista, comparada com os demais.</p>
+          <dl class="mt-4 grid grid-cols-2 gap-4">
+            <div class="rounded-md bg-lista-bg/60 p-3">
+              <dt class="text-xs font-bold text-lista-ink">Na lista de prioridade</dt>
+              <dd class="mt-1 flex items-baseline gap-1.5">
+                <span class="tabular text-3xl font-extrabold text-lista-ink">{{ dados.prioridade.lista.espera_mediana }}</span>
+                <span class="text-sm text-ink-muted">dias</span>
+              </dd>
+              <dd class="tabular text-xs text-ink-muted">{{ dados.prioridade.lista.pacientes }} pacientes · {{ dados.prioridade.lista.exames }} exames</dd>
+            </div>
+            <div class="rounded-md bg-surface-sunken p-3 ring-1 ring-line">
+              <dt class="text-xs font-bold text-ink-muted">Demais pacientes</dt>
+              <dd class="mt-1 flex items-baseline gap-1.5">
+                <span class="tabular text-3xl font-extrabold text-ink">{{ dados.prioridade.demais.espera_mediana }}</span>
+                <span class="text-sm text-ink-muted">dias</span>
+              </dd>
+              <dd class="tabular text-xs text-ink-muted">{{ dados.prioridade.demais.pacientes }} pacientes · {{ dados.prioridade.demais.exames }} exames</dd>
+            </div>
+          </dl>
+          <p class="mt-3 text-xs text-ink-muted text-pretty">
+            A pergunta do RF017 é se os prioritários são atendidos antes. Com o histórico de agendamentos, este quadro passa a comparar o tempo até a marcação, não só a espera atual.
+          </p>
+        </section>
+
+        <section class="rounded-lg bg-surface ring-1 ring-line p-5" aria-labelledby="titulo-contato">
+          <h2 id="titulo-contato" class="text-base font-extrabold text-ink">Contato com pacientes</h2>
+          <p class="mt-0.5 text-xs text-ink-muted">Exames em tentativa de contato agora. O paciente tem 24 horas para confirmar a data.</p>
+          <dl class="mt-4 grid grid-cols-3 gap-4">
+            <div>
+              <dt class="text-xs font-bold text-ink-muted">Aguardando resposta</dt>
+              <dd class="tabular text-3xl font-extrabold text-ink">{{ dados.contato.em_contato }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs font-bold text-ink-muted">Sem resposta há mais de 24h</dt>
+              <dd class="tabular text-3xl font-extrabold" :class="dados.contato.prazo_vencido ? 'text-separar-ink' : 'text-ink'">{{ dados.contato.prazo_vencido }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs font-bold text-ink-muted">Sem contato</dt>
+              <dd class="tabular text-3xl font-extrabold text-ink">{{ dados.contato.sem_contato }}</dd>
+            </div>
+          </dl>
+          <router-link
+            :to="{ path: '/fila', query: { aba: 'em_contato' } }"
+            class="mt-3 inline-block text-xs font-semibold text-acao underline underline-offset-2 hover:text-acao-hover"
+          >
+            Abrir quem está em contato
+          </router-link>
+        </section>
+      </div>
 
       <section class="rounded-lg bg-surface ring-1 ring-line overflow-hidden">
         <h2 class="px-5 pt-4 pb-3 text-base font-extrabold text-ink">Demanda por unidade</h2>
@@ -100,14 +163,23 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { ArrowDownTrayIcon } from '@heroicons/vue/20/solid';
 import api from '../services/api';
 import BarraFaixas, { FAIXAS } from '../components/BarraFaixas.vue';
-import { ROTULO_STATUS, exameCurto, nomeUnidade, type StatusItem } from '../lib/agenda';
+import { ROTULO_STATUS, baixarCsv, exameCurto, hojeIso, nomeUnidade, type StatusItem } from '../lib/agenda';
+
+interface ResumoGrupo {
+  pacientes: number;
+  exames: number;
+  espera_mediana: number;
+}
 
 interface Painel {
   fonte: string;
   totais: { pendentes: number; tratados: number; acima_limite: number; faixas: number[] };
   status: Record<string, number>;
+  prioridade: { lista: ResumoGrupo; demais: ResumoGrupo };
+  contato: { em_contato: number; prazo_vencido: number; sem_contato: number };
   unidades: {
     unidade: string; pendentes: number; tratados: number; espera_mediana: number; espera_maxima: number;
     acima_limite: number; limite: number; faixas: number[]; principais_exames: { exame: string; pendentes: number }[];
@@ -120,6 +192,23 @@ const erro = ref('');
 
 function pct(parte: number, total: number) {
   return total ? `${Math.round((parte / total) * 100)}%` : '0%';
+}
+
+function exportarCsv() {
+  if (!dados.value) return;
+  const linhas: (string | number)[][] = [[
+    'Unidade', 'Pendentes', 'Espera mediana (dias)', 'Espera máxima (dias)', 'Limite (dias)', 'Acima do limite',
+    ...FAIXAS.map((f) => `Espera ${f.rotulo}`), 'Exames com mais pedidos',
+  ]];
+  for (const u of dados.value.unidades) {
+    linhas.push([
+      nomeUnidade(u.unidade), u.pendentes, u.espera_mediana, u.espera_maxima, u.limite, u.acima_limite, ...u.faixas,
+      u.principais_exames.map((e) => `${exameCurto(e.exame)} (${e.pendentes})`).join(', '),
+    ]);
+  }
+  const t = dados.value.totais;
+  linhas.push(['Total', t.pendentes, '', '', '', t.acima_limite, ...t.faixas, '']);
+  baixarCsv(`painel-agendahc-${hojeIso()}.csv`, linhas);
 }
 
 async function carregar() {

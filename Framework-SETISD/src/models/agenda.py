@@ -19,6 +19,8 @@ class TratamentoSolicitacao(Base):
     data_agendada = Column(Date, nullable=True)
     observacao = Column(Text, nullable=True)
     usuario = Column(String, nullable=False)
+    desfaz = Column(Boolean, default=False, nullable=False)
+    exemplo = Column(Boolean, default=False, nullable=False)
     criado_em = Column(DateTime, default=_agora, nullable=False)
 
 
@@ -60,3 +62,24 @@ class CombinacaoExames(Base):
     orientacao = Column(String, nullable=False)
     exemplo = Column(Boolean, default=False, nullable=False)
     ativo = Column(Boolean, default=True, nullable=False)
+
+
+class VagasExame(Base):
+    __tablename__ = "vagas_exame"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigo_exame = Column(String, nullable=False, unique=True, index=True)
+    vagas = Column(Integer, nullable=False)
+    atualizado_por = Column(String, nullable=False)
+    atualizado_em = Column(DateTime, default=_agora, onupdate=_agora, nullable=False)
+
+
+class PreparoExame(Base):
+    __tablename__ = "preparos_exame"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigo_exame = Column(String, nullable=False, unique=True, index=True)
+    texto = Column(Text, nullable=False)
+    exemplo = Column(Boolean, default=False, nullable=False)
+    atualizado_por = Column(String, nullable=False)
+    atualizado_em = Column(DateTime, default=_agora, onupdate=_agora, nullable=False)

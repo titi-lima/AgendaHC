@@ -272,10 +272,19 @@ Corners are gently rounded and stay small. Bars use 2px. Status tags, alerts and
 A pill (full radius, 2px × 10px, 12px/700) with a 14px solid icon: list for Lista, clock for Espera, tray for Chegada. The title attribute carries the detailed reason. It appears in the row's Motivo column and in the detail-panel header.
 
 ### Status tag and combination alert
-Small 4px-radius tags (1px × 6px, 12px/700) with a 12–14px icon. StatusTag stays hidden while an item is Pendente. Em contato, Sem contato, Agendado and Cancelado map to agrupar, separar, ok and chegada. AlertaCombinacao maps Separar, Ordem and Agrupar to their pairs, with the marcador guidance in its title.
+Small 4px-radius tags (1px × 6px, 12px/700) with a 12–14px icon. StatusTag stays hidden while an item is Pendente. Em contato, Sem contato, Agendado and Cancelado map to agrupar, separar, ok and chegada. AlertaCombinacao maps Separar, Ordem and Agrupar to their pairs, with the marcador guidance in its title. Pedido repetido (the same exam in two solicitações, RF015) is the one alert without a tint: white surface, ink text and a line-strong inset ring with a duplicate icon. It asks for a check, not an action, so it must not compete with Separar.
 
 ### Queue row
 Surface white, sunken on hover, acao-suave when selected. A moved row is washed in lista-bg at 45% and keeps a "subiu N" tag (arrow up plus the count) next to its position. The tag stays until the next reload of the queue. The position is shown in 16px/800 tabular figures. The patient cell shows the name with the prontuário below it. Exams stack one per line with a short date, plus the unit when it differs from the current one.
+
+### Contact tabs
+Underline tabs sit on the bottom hairline of the queue header: A chamar, Em contato, Sem contato, Finalizados hoje. The active tab has a 2px acao underline and ink text, and each label carries its count in a 4px chegada tag. When anyone in Em contato has gone past the 24-hour answer window, a separar tag with "N > 24h" sits next to the count. Tabs filter the list but never renumber it: the position is always the patient's place in the whole queue, so gaps in A chamar mean someone is being contacted. Each tab except A chamar opens with a one-line sunken note that states its rule. In Em contato the Situação cell shows the hours waited, the hours left and who made the contact, and turns separar with "ofereça a vaga ao próximo" once the window is over.
+
+### Slot cut line
+With an exam filter on, a 64px number field "Vagas abertas" sits in the toolbar. In A chamar, a full-width row with a 2px dashed acao top border on acao-suave is inserted after the patient who fills the last slot (counting in-scope exams, not patients). It reads "Linha das N vagas abertas: chame quem está acima." Zero slots does not draw a line. It shows an espera-tinted banner above the table instead, and every row stays visible.
+
+### Patient message
+When Em contato (with an offered date) or Agendado is chosen, the result form shows the ready-to-paste message in a sunken box with a "Copiar para o WhatsApp" button. The system never sends it. Example preparation texts are replaced by "[preparo a confirmar com a UDI]" until someone saves a reviewed text in Regras.
 
 ### Re-rank motion
 Rows are keyed by patient and slide to their new index over 520ms with `cubic-bezier(0.16, 1, 0.3, 1)`. Entering rows fade in over 200ms and leaving rows fade out over 160ms. After a priority change, rows that moved up get the "subiu N" mark, a toast reports "Subiu de Xº para Yº", and the row scrolls into view. Positions are kept in sessionStorage so a re-rank made on another screen still animates when the queue opens. The detail panel enters with 180ms opacity and a 12px slide. Under `prefers-reduced-motion: reduce` the row slide, the row fades, the panel transition, the skeleton pulse and the refresh spinner are all removed.
@@ -287,7 +296,7 @@ Surface, 1px campo border, 6px radius, 14px ink text with ink-muted placeholder 
 The charcoal sidebar uses gray-300 600 text with 20px outline icons and a 4px radius. Hover uses the active-link color at 70% with white text, and the active item gets solid paper-active-link with white text. The brand block shows AgendaHC 18px/800 with "Central de Marcação" 12px below it. The footer shows the app name and "Versão X | HC-UFPE", or "vX" when the sidebar is collapsed.
 
 ### Detail panel
-A 400px white aside with a left hairline. It has a sticky header (name, prontuário, "Nº na fila" and the reason chip with its detail), then hairline-divided sections: combination, exams with per-item "Registrar resultado", priority list, missing-data note and history.
+A 400px white aside with a left hairline. It has a sticky header (name, prontuário, "Nº na fila" and the reason chip with its detail), then hairline-divided sections: alerts, exams with per-item "Registrar resultado", priority list, missing-data note and history. Each exam shows who requested it, the 24-hour contact status and attempt count, and a collapsible Preparo. A patient with two or more pending exams gets "Registrar para os N pendentes", which offers only Em contato, Sem contato and Cancelado. Scheduling stays per exam because each exam has its own date.
 
 ### Wait-band bar (BarraFaixas)
 A stacked horizontal bar (10px, or 16px when tall, 2px radius, line track) with the four wait bands. It is exposed with `role="img"` and an aria-label listing every band.

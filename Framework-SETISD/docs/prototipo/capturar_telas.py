@@ -14,6 +14,14 @@ def captura(pagina, nome):
     print("salvo", nome)
 
 
+def detalhe(pagina):
+    return pagina.locator("#detalhe-paciente")
+
+
+def escolher_resultado(pagina, rotulo):
+    detalhe(pagina).locator("form label").filter(has_text=rotulo).first.click()
+
+
 with sync_playwright() as p:
     navegador = p.chromium.launch(channel="chrome", headless=True)
     contexto = navegador.new_context(viewport={"width": 1440, "height": 900}, device_scale_factor=2, locale="pt-BR")
@@ -24,6 +32,9 @@ with sync_playwright() as p:
     pagina.click("button[type=submit]")
     pagina.wait_for_url("**/fila")
     pagina.wait_for_selector("tbody tr[data-chave]")
+    prontuarios_colados = pagina.locator("tbody tr[data-chave]").evaluate_all(
+        "els => els.slice(30, 33).map(e => e.dataset.chave)"
+    )
     captura(pagina, "01-fila")
 
     pagina.get_by_role("button", name="Medicina Nuclear").click()
@@ -54,12 +65,12 @@ with sync_playwright() as p:
     print("desfazer ok:", pagina.get_by_text("Inclusão desfeita").first.inner_text())
     pagina.wait_for_timeout(600)
 
-    pagina.get_by_role("button", name="Registrar resultado").first.click()
-    pagina.locator("label", has_text="Agendado no AGHU").click()
-    pagina.fill("input[type=date]", "2026-12-04")
-    pagina.fill("textarea", "Paciente confirmou por telefone")
+    detalhe(pagina).get_by_role("button", name="Registrar resultado").first.click()
+    escolher_resultado(pagina, "Agendado no AGHU")
+    detalhe(pagina).locator("input[type=date]").fill("2026-12-04")
+    detalhe(pagina).locator("form textarea").first.fill("Paciente confirmou por telefone")
     captura(pagina, "04-registrar-resultado")
-    pagina.get_by_role("button", name="Registrar", exact=True).click()
+    detalhe(pagina).get_by_role("button", name="Registrar", exact=True).click()
     pagina.wait_for_timeout(1500)
     captura(pagina, "05-apos-registro")
     pagina.get_by_role("button", name="Desfazer").click()
@@ -67,9 +78,47 @@ with sync_playwright() as p:
     print("desfazer registro ok:", pagina.get_by_text("Registro desfeito").first.inner_text())
     pagina.wait_for_timeout(600)
 
+    pagina.goto(f"{BASE}/fila?unidade=UDI: ULTRASSONOGRAFIA&exame=USAX")
+    pagina.wait_for_selector("tbody tr[data-chave]")
+    vagas = pagina.get_by_label("Vagas abertas")
+    vagas.fill("5")
+    vagas.press("Enter")
+    pagina.wait_for_selector("text=Linha das 5 vagas abertas")
+    captura(pagina, "10-fila-exame-vagas")
+
+    pagina.goto(f"{BASE}/fila?aba=em_contato")
+    pagina.wait_for_selector("text=Sem resposta há")
+    captura(pagina, "11-em-contato")
+
+    pagina.goto(f"{BASE}/fila")
+    pagina.wait_for_selector("tbody tr[data-chave]")
+    pagina.locator("tbody tr[data-chave]").nth(4).click()
+    pagina.wait_for_selector("text=Exames do paciente")
+    detalhe(pagina).get_by_role("button", name="Registrar resultado").first.click()
+    escolher_resultado(pagina, "Em contato")
+    detalhe(pagina).locator("input[type=date]").fill("2026-12-09")
+    pagina.wait_for_selector("text=Mensagem para o paciente")
+    detalhe(pagina).evaluate("el => el.scrollTo(0, 220)")
+    captura(pagina, "12-mensagem-whatsapp")
+    detalhe(pagina).get_by_role("button", name="Cancelar").first.click()
+
     pagina.goto(f"{BASE}/painel")
     pagina.wait_for_selector("text=Demanda por unidade")
     captura(pagina, "06-painel")
+
+    pagina.goto(f"{BASE}/regras")
+    pagina.wait_for_selector("text=Ordem dos critérios por unidade")
+    pagina.get_by_role("button", name="Incluir pacientes").click()
+    pagina.locator("#form-lote-prioridade textarea").fill("\n".join(prontuarios_colados + ["1234567", "abc"]))
+    pagina.locator("#form-lote-prioridade input[list=areas-conhecidas]").fill("Nefrologia")
+    pagina.locator("#form-lote-prioridade input[placeholder^='Ex.: paciente em']").fill("Paciente em hemodiálise")
+    pagina.locator("#form-lote-prioridade input[type=date]").fill("2027-02-28")
+    pagina.locator("#form-lote-prioridade").get_by_role("button", name="Incluir na lista").click()
+    pagina.wait_for_selector("text=pacientes incluídos")
+    pagina.locator("main").evaluate(
+        "el => el.scrollBy(0, document.querySelector('#sec-lista').getBoundingClientRect().top - el.getBoundingClientRect().top - 16)"
+    )
+    captura(pagina, "13-regras-lista-colada")
 
     pagina.goto(f"{BASE}/regras")
     pagina.wait_for_selector("text=Ordem dos critérios por unidade")
@@ -78,14 +127,10 @@ with sync_playwright() as p:
     captura(pagina, "08-regras-listas")
 
     pagina.set_viewport_size({"width": 1366, "height": 768})
-    pagina.goto(f"{BASE}/fila")
+    pagina.goto(f"{BASE}/fila?aba=em_contato")
     pagina.wait_for_selector("tbody tr[data-chave]")
-    pagina.locator("tbody tr[data-chave]").nth(2).click()
+    pagina.locator("tbody tr[data-chave]").first.click()
     pagina.wait_for_selector("text=Exames do paciente")
-    pagina.get_by_role("button", name="Registrar resultado").first.click()
-    pagina.get_by_text("Em contato", exact=True).click()
-    pagina.get_by_role("button", name="Registrar", exact=True).click()
-    pagina.wait_for_timeout(1500)
     captura(pagina, "09-compacto-1366")
 
     navegador.close()
