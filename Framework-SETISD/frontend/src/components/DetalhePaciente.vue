@@ -209,6 +209,9 @@
                   </button>
                 </p>
                 <p class="mt-1.5 whitespace-pre-line text-xs text-ink text-pretty">{{ mensagemPara(i, form.status as StatusItem, form.data) }}</p>
+                <p v-if="form.status === 'AGENDADO' && i.preparo?.exemplo" class="mt-1.5 text-xs text-ink-muted">
+                  O preparo deste exame ainda é texto de exemplo. Ele entra na mensagem depois que a UDI revisar e salvar em Regras.
+                </p>
                 <p class="mt-1.5 text-xs text-ink-muted">O AgendaHC não envia mensagens: cole no WhatsApp da Central.</p>
               </div>
               <label class="block">
@@ -405,7 +408,7 @@ const DESTINO: Record<StatusItem, Aba> = {
 function mensagemPara(i: ItemFila, status: StatusItem, dataIso: string | null | undefined) {
   const nome = primeiroNome(paciente.value?.nome ?? '');
   const exame = exameCurto(i.nome_exame);
-  const data = dataCompleta(`${dataIso}T12:00:00`);
+  const data = dataCompleta(dataIso);
   if (status === 'EM_CONTATO') {
     return `Olá, ${nome}. Aqui é a Central de Marcação do HC-UFPE.\n`
       + `Temos vaga para o seu exame ${exame} no dia ${data}.\n`

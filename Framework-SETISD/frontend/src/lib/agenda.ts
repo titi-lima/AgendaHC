@@ -173,15 +173,19 @@ export function nomeUnidade(unidade: string | null | undefined): string {
   return corrigirAghu(unidade.replace(/^UDI:\s*/, '')).toLowerCase().replace(/(^|\s)\S/g, (l) => l.toUpperCase());
 }
 
+function paraData(iso: string): Date {
+  return new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00` : iso);
+}
+
 export function dataCurta(iso: string | null | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
+  const d = paraData(iso);
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
 export function dataCompleta(iso: string | null | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
+  const d = paraData(iso);
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 

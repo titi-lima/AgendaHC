@@ -5,7 +5,7 @@
     :title="alerta.orientacao"
   >
     <component :is="icone" class="h-3.5 w-3.5" aria-hidden="true" />
-    {{ ROTULO_COMBINACAO[alerta.tipo] }}
+    {{ rotulo ?? ROTULO_COMBINACAO[alerta.tipo] }}
   </span>
 </template>
 
@@ -14,7 +14,7 @@ import { computed } from 'vue';
 import { ExclamationTriangleIcon, ArrowLongRightIcon, LinkIcon, DocumentDuplicateIcon } from '@heroicons/vue/20/solid';
 import { ROTULO_COMBINACAO, type Alerta } from '../lib/agenda';
 
-const props = defineProps<{ alerta: Alerta }>();
+const props = defineProps<{ alerta: Alerta; rotulo?: string }>();
 
 const classes = computed(() => ({
   SEPARAR: 'bg-separar-bg text-separar-ink',

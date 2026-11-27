@@ -218,7 +218,7 @@
               <td v-if="!l.g" :colspan="colunas" class="px-6 py-1.5">
                 <p class="flex flex-wrap items-center gap-x-2 text-xs font-bold text-acao">
                   <ScissorsIcon class="h-4 w-4 -rotate-90" aria-hidden="true" />
-                  Linha das {{ dados?.vagas?.vagas }} vagas abertas: chame quem está acima.
+                  Linha das {{ dados?.vagas?.vagas }} vagas abertas: chame os {{ dados?.vagas?.vagas }} pacientes acima.
                   <span class="font-semibold text-ink-muted">Abaixo, aguardam a próxima abertura da agenda.</span>
                 </p>
               </td>
@@ -283,13 +283,13 @@
                       {{ l.g.tentativas }} {{ l.g.tentativas === 1 ? 'tentativa' : 'tentativas' }}<template v-if="l.g.contato"> · última {{ horaCurta(l.g.contato.criado_em) }}</template>
                     </p>
                     <template v-if="compacto">
-                      <AlertaCombinacao v-for="a in l.g.alertas" :key="a.tipo + a.exames.join()" :alerta="a" />
+                      <AlertaCombinacao v-for="a in alertasDaLinha(l.g)" :key="a.alerta.tipo + a.alerta.exames.join()" :alerta="a.alerta" :rotulo="a.rotulo" />
                     </template>
                   </div>
                 </td>
                 <td v-if="!compacto" class="pl-2 pr-6 py-2.5">
                   <div class="flex flex-col items-start gap-1">
-                    <AlertaCombinacao v-for="a in l.g.alertas" :key="a.tipo + a.exames.join()" :alerta="a" />
+                    <AlertaCombinacao v-for="a in alertasDaLinha(l.g)" :key="a.alerta.tipo + a.alerta.exames.join()" :alerta="a.alerta" :rotulo="a.rotulo" />
                   </div>
                 </td>
               </template>
@@ -368,6 +368,7 @@ import {
   horaCurta,
   nomeUnidade,
   type Aba,
+  type Alerta,
   type GrupoFila,
   type Motivo,
   type Regra,
@@ -515,13 +516,20 @@ const notaDaAba = computed(() => {
 const indiceDeCorte = computed(() => {
   const vagas = dados.value?.vagas?.vagas;
   if (!exame.value || aba.value !== 'a_chamar' || busca.value.trim() || !vagas) return null;
-  let soma = 0;
-  for (const [idx, g] of gruposFiltrados.value.entries()) {
-    soma += g.itens.filter((i) => i.na_unidade).length;
-    if (soma >= vagas) return idx < gruposFiltrados.value.length - 1 ? idx : null;
-  }
-  return null;
+  return vagas < gruposFiltrados.value.length ? vagas - 1 : null;
 });
+
+function alertasDaLinha(g: GrupoFila): { alerta: Alerta; rotulo?: string }[] {
+  const repetidos = g.alertas.filter((a) => a.tipo === 'DUPLICIDADE');
+  const outros = g.alertas.filter((a) => a.tipo !== 'DUPLICIDADE').map((alerta) => ({ alerta }));
+  if (repetidos.length < 2) return [...repetidos.map((alerta) => ({ alerta })), ...outros];
+  const juntos: Alerta = {
+    tipo: 'DUPLICIDADE',
+    orientacao: repetidos.map((a) => `${exameCurto(a.exames[0])}: ${a.orientacao}`).join('\n'),
+    exames: repetidos.flatMap((a) => a.exames),
+  };
+  return [{ alerta: juntos, rotulo: `${repetidos.length} pedidos repetidos` }, ...outros];
+}
 
 const linhasTabela = computed<Linha[]>(() => {
   const linhas: Linha[] = [];

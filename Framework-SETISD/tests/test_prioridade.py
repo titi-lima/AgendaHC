@@ -137,6 +137,14 @@ def test_abas_separam_em_contato_com_prazo_de_24h_e_mantem_posicao():
     assert [(g["prontuario"], g["posicao"]) for g in a_chamar["grupos"]] == [("2", 2)]
 
 
+def test_contato_mais_antigo_define_o_prazo_vencido_do_paciente():
+    itens = [item("1", "10", "2026-08-01"), item("1", "11", "2026-08-01", "MAMOGRAFIA BILATERAL", "RXMM1")]
+    status = consolidar_tratamentos([tratamento("10", "EM_CONTATO", 30), tratamento("11", "EM_CONTATO", 2, codigo="RXMM1")])
+    r = ranquear_fila(itens, status, [], REGRAS, [], HOJE, agora=AGORA)
+    assert r["grupos"][0]["contato"]["horas"] == 30
+    assert r["resumo"]["abas"]["prazo_vencido"] == 1
+
+
 def test_paciente_com_um_exame_em_contato_fica_na_aba_em_contato():
     itens = [item("1", "10", "2026-08-01"), item("1", "11", "2026-08-01", "MAMOGRAFIA BILATERAL", "RXMM1")]
     status = consolidar_tratamentos([tratamento("10", "EM_CONTATO", 1)])

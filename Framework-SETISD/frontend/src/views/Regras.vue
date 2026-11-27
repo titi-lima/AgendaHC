@@ -222,7 +222,7 @@
               <td class="px-2 py-2.5 text-ink">{{ p.motivo }}</td>
               <td class="px-2 py-2.5 text-ink-muted">{{ p.unidade ? nomeUnidade(p.unidade) : 'Todas as unidades' }}</td>
               <td class="tabular px-2 py-2.5" :class="venceEmBreve(p.validade) ? 'font-bold text-espera-ink' : 'text-ink-muted'">
-                {{ p.validade ? `até ${dataCompleta(`${p.validade}T12:00:00`)}` : 'sem prazo' }}
+                {{ p.validade ? `até ${dataCompleta(p.validade)}` : 'sem prazo' }}
               </td>
               <td class="px-2 py-2.5 text-ink-muted">
                 <template v-if="p.exemplo">Exemplo</template>
@@ -506,7 +506,7 @@ function descreverAuditoria(a: RegistroAuditoria) {
       return partes.join(' · ');
     }
     case 'INCLUIR_PACIENTE_PRIORITARIO':
-      return `${alvo} · ${depois.area}${depois.validade ? ` até ${dataCompleta(`${depois.validade}T12:00:00`)}` : ''}${depois.em_lote ? ' · lista colada' : ''}`;
+      return `${alvo} · ${depois.area}${depois.validade ? ` até ${dataCompleta(depois.validade)}` : ''}${depois.em_lote ? ' · lista colada' : ''}`;
     case 'REMOVER_PACIENTE_PRIORITARIO':
       return `${alvo} · ${antes.area ?? ''}`;
     case 'ALTERAR_VAGAS_EXAME':

@@ -288,7 +288,7 @@ def ranquear_fila(
             "prioridade": prioritario,
             "espera_dias": max(i["espera_dias"] for i in no_escopo),
             "aba": aba_do_paciente(no_escopo),
-            "contato": min(contatos, key=lambda c: c["horas"] if c["horas"] is not None else 0) if contatos else None,
+            "contato": max(contatos, key=lambda c: c["horas"] if c["horas"] is not None else 0) if contatos else None,
             "tentativas": max((i["status_info"] or {}).get("tentativas", 0) for i in no_escopo),
             "itens": [_sem_dados_do_paciente(i) for i in ordenados],
             "alertas": alertas_do_paciente(lista, combinacoes),
