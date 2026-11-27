@@ -47,12 +47,16 @@ def _ip(request: Request) -> Optional[str]:
 
 
 @router.get("/regras")
-async def listar_regras(db: AsyncSession = Depends(get_app_db_session)):
+async def listar_regras(
+    provider: SolicitacaoProviderInterface = Depends(get_solicitacao_provider(STRATEGY)),
+    db: AsyncSession = Depends(get_app_db_session),
+):
     ctx = await fila.carregar_contexto(db, date.today())
+    nomes = {i["prontuario"]: i["nome"] for i in await provider.listar_itens_solicitados() if i["prontuario"]}
     return {
         "criterios_disponiveis": list(fila.CRITERIOS_VALIDOS),
         "regras": sorted(ctx["regras"].values(), key=lambda r: (r["unidade"] != fila.REGRA_GERAL, r["unidade"])),
-        "prioritarios": ctx["prioritarios"],
+        "prioritarios": [{**p, "nome": nomes.get(p["prontuario"])} for p in ctx["prioritarios"]],
         "combinacoes": ctx["combinacoes"],
     }
 

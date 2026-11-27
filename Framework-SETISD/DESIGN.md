@@ -28,10 +28,12 @@ colors:
   ink-muted: "#6b665f"
   line: "#e3e0d8"
   line-strong: "#d3cfc5"
+  campo: "#8c877f"
   paper-disabled: "#e0e0e0"
   faixa-30: "#c9d9d9"
   faixa-60: "#e9c46f"
   faixa-90: "#d98a2b"
+  faixa-90-mais: "#7a5100"
 typography:
   figure-lg:
     fontFamily: "Nunito, ui-sans-serif, system-ui, sans-serif"
@@ -194,14 +196,14 @@ Each pair is used as dark text and icon on a light tint of the same hue. Every p
 - **OK Green** (ok-ink / ok-bg): the Agendado no AGHU status and the scheduled-date line.
 
 ### Wait-band ramp
-- **Faixas** (faixa-30, faixa-60, faixa-90, then separar-ink for more than 90 days): the stacked wait-distribution bar and its legend in Painel. These values are inline in the bar component, not theme variables.
+- **Faixas** (faixa-30, faixa-60, faixa-90, then faixa-90-mais, the dark waiting amber, for more than 90 days): the stacked wait-distribution bar and its legend in Painel. These values are inline in the bar component, not theme variables.
 
 ### Neutral
 - **Paper** (paper-bg): app ground, the unit rail, and the queue's toolbar and sticky header.
 - **Charcoal Sidebar** (paper-sidebar), with paper-active-link marking the active nav item.
 - **Surface White** (surface): table rows, the detail panel, the top bar and section panels. **Sunken** (surface-sunken) is used for row hover, table heads in Painel/Regras, and the rule list.
 - **Ink** (ink, 13:1 on paper) for primary text. **Ink Muted** (ink-muted, at least 5.1:1) for secondary text, column heads and units.
-- **Line** (line) for hairlines and rings. **Line Strong** (line-strong) for input borders and the scrollbar thumb.
+- **Line** (line) for hairlines and rings. **Line Strong** (line-strong) for the scrollbar thumb and quiet dividers. **Campo** (campo, 3.5:1 on white) for input, select and secondary-button borders, so form fields meet the 3:1 non-text contrast minimum.
 - **Disabled** (paper-disabled) is the fill for disabled primary buttons.
 
 ### Named Rules
@@ -209,7 +211,7 @@ Each pair is used as dark text and icon on a light tint of the same hue. Every p
 
 **The Amber Is Waiting Rule.** Amber is the waiting-time color. Summary figures and wait bands use it as a category color. In a row or per-unit cell, a day count turns amber only when it is over the unit rule's limit (or the 60-day Painel threshold), and stays in ink otherwise.
 
-**The Vermilion Is Trouble Rule.** On chips, tags, text and alerts, vermilion means a conflict between exams or a failure that needs action, and never priority or waiting. The one exception is the top step of the wait-band bar. It differs from the direction contract and should not be extended.
+**The Vermilion Is Trouble Rule.** On chips, tags, text and alerts, vermilion means a conflict between exams or a failure that needs action, and never priority or waiting.
 
 **The One Teal Action Rule.** Acao is the only action color. Lista teal is a reason, not a button.
 
@@ -227,7 +229,7 @@ Each pair is used as dark text and icon on a light tint of the same hue. Every p
 - **Section** (800, 14px): panel headings in Painel and Regras.
 - **Body** (400 to 700, 14px): table cells. Patient names are 700 and exam names 600 when they belong to the current unit.
 - **Label** (700, 12px): column heads, detail-panel section heads, form labels and reason chips. Sentence case with normal tracking.
-- **Tag** (700, 11px): status tags, combination alerts and the "subiu N" mark. 10–11px is also used for the sidebar footer and help notes.
+- **Tag** (700, 12px): status tags, combination alerts and the "subiu N" mark. 12px is the floor everywhere, including the sidebar footer and help notes.
 
 ### Named Rules
 **The Tabular Figures Rule.** Positions, prontuários, request codes, dates, day counts and every count use the `tabular` utility (tnum), so columns line up.
@@ -248,7 +250,7 @@ The page gutter is 24px. Panel padding is 20px. Table cells are 8px wide by 10px
 
 The system is flat and tonal. Depth comes from paper versus white surfaces, 1px line borders and 1px rings. The queue's sticky header uses paper at 95% with a small backdrop blur. Only two shadows exist:
 - **Rail lift** (`0 1px 2px rgba(43,41,37,0.08)` with a 1px line ring): the active unit in the rail.
-- **Toast** (`0 6px 20px -6px rgba(43,41,37,0.35)`): bottom-left toasts, ink background for success and info, vermilion for error, 8px radius, 14px/600 text.
+- **Toast** (`0 6px 20px -6px rgba(43,41,37,0.35)`): top-center toasts, ink background for success and info, with an inline "Desfazer" action after a priority inclusion, vermilion for error, 8px radius, 14px/600 text.
 
 The framework's `shadow-paper` (on its Card component) survives only on the inherited Login and Configurações screens. The Fila, Painel and Regras screens don't use it.
 
@@ -262,7 +264,7 @@ Corners are gently rounded and stay small. Bars use 2px. Status tags, alerts and
 
 ### Buttons
 - **Primary (acao):** white on acao, 14px/700, 6px radius, 6px × 12px padding (8px × 16px for "Salvar nova versão"). Hover turns acao-hover. Disabled uses the paper-disabled fill with ink-muted text.
-- **Secondary:** surface with a 1px line-strong ring or border, ink 600 text, sunken on hover ("Incluir na lista de prioridade", "Mostrar mais 60").
+- **Secondary:** surface with a 1px campo ring or border, ink 600 text, sunken on hover ("Incluir na lista de prioridade", "Mostrar mais 60").
 - **Quiet:** muted text that darkens to ink on hover (Cancelar, Desfazer). **Text link:** acao 600–700, underline offset 2px, darkens on hover.
 - **Destructive:** quiet muted text that gets a vermilion tint on hover only (Remover).
 
@@ -270,7 +272,7 @@ Corners are gently rounded and stay small. Bars use 2px. Status tags, alerts and
 A pill (full radius, 2px × 10px, 12px/700) with a 14px solid icon: list for Lista, clock for Espera, tray for Chegada. The title attribute carries the detailed reason. It appears in the row's Motivo column and in the detail-panel header.
 
 ### Status tag and combination alert
-Small 4px-radius tags (1px × 6px, 11px/700) with a 12–14px icon. StatusTag stays hidden while an item is Pendente. Em contato, Sem contato, Agendado and Cancelado map to agrupar, separar, ok and chegada. AlertaCombinacao maps Separar, Ordem and Agrupar to their pairs, with the marcador guidance in its title.
+Small 4px-radius tags (1px × 6px, 12px/700) with a 12–14px icon. StatusTag stays hidden while an item is Pendente. Em contato, Sem contato, Agendado and Cancelado map to agrupar, separar, ok and chegada. AlertaCombinacao maps Separar, Ordem and Agrupar to their pairs, with the marcador guidance in its title.
 
 ### Queue row
 Surface white, sunken on hover, acao-suave when selected. A moved row is washed in lista-bg at 45% and keeps a "subiu N" tag (arrow up plus the count) next to its position. The tag stays until the next reload of the queue. The position is shown in 16px/800 tabular figures. The patient cell shows the name with the prontuário below it. Exams stack one per line with a short date, plus the unit when it differs from the current one.
@@ -279,10 +281,10 @@ Surface white, sunken on hover, acao-suave when selected. A moved row is washed 
 Rows are keyed by patient and slide to their new index over 480ms with `cubic-bezier(0.16, 1, 0.3, 1)`. Entering rows fade in over 200ms and leaving rows fade out over 160ms. After a priority change, rows that moved up get the "subiu N" mark, a toast reports "Subiu de Xº para Yº", and the row scrolls into view. Positions are kept in sessionStorage so a re-rank made on another screen still animates when the queue opens. The detail panel enters with 180ms opacity and a 12px slide. Under `prefers-reduced-motion: reduce` the row slide and the panel transition are removed. The row opacity fades, skeleton pulse and refresh spinner still run.
 
 ### Inputs
-Surface, 1px line-strong border, 6px radius, 14px ink text with muted placeholder. Search has a 16px leading icon and on focus gets an acao border with a 2px acao ring at 20%. Result choices are radio cards (1px line ring, 2px acao ring when checked or keyboard-focused).
+Surface, 1px campo border, 6px radius, 14px ink text with ink-muted placeholder at full strength. Search has a 16px leading icon and on focus gets an acao border with a 2px acao ring at 20%. Result choices are radio cards (1px line ring, 2px acao ring when checked or keyboard-focused).
 
 ### Navigation
-The charcoal sidebar uses gray-300 600 text with 20px outline icons and a 4px radius. Hover uses the active-link color at 70% with white text, and the active item gets solid paper-active-link with white text. The brand block shows AgendaHC 18px/800 with "Central de Marcação" 11px below it. The footer shows the app name and "Versão X | HC-UFPE", or "vX" when the sidebar is collapsed.
+The charcoal sidebar uses gray-300 600 text with 20px outline icons and a 4px radius. Hover uses the active-link color at 70% with white text, and the active item gets solid paper-active-link with white text. The brand block shows AgendaHC 18px/800 with "Central de Marcação" 12px below it. The footer shows the app name and "Versão X | HC-UFPE", or "vX" when the sidebar is collapsed.
 
 ### Detail panel
 A 400px white aside with a left hairline. It has a sticky header (name, prontuário, "Nº na fila" and the reason chip with its detail), then hairline-divided sections: combination, exams with per-item "Registrar resultado", priority list, missing-data note and history.

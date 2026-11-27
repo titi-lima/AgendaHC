@@ -243,6 +243,7 @@ async def carregar_contexto(session: AsyncSession, hoje: date) -> Dict[str, Any]
         {
             "id": p.id, "prontuario": p.prontuario, "area": p.area, "motivo": p.motivo, "unidade": p.unidade,
             "validade": p.validade.isoformat() if p.validade else None, "exemplo": p.exemplo,
+            "criado_por": p.criado_por, "criado_em": p.criado_em.isoformat() if p.criado_em else None,
         }
         for p in (await session.execute(
             select(PacientePrioritario).where(PacientePrioritario.ativo.is_(True)).order_by(PacientePrioritario.id)

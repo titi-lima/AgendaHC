@@ -109,3 +109,5 @@ GEMINI.md
 
 data/solicitacoes.csv
 .impeccable/review/
+.impeccable/hook.cache.json
+frontend/.impeccable/

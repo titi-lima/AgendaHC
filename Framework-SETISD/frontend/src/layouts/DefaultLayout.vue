@@ -1,5 +1,11 @@
 <template>
   <div class="relative h-screen overflow-hidden md:flex">
+    <a
+      href="#conteudo-principal"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-bold focus:text-acao focus:ring-2 focus:ring-acao"
+    >
+      Pular para o conteúdo
+    </a>
     <div class="bg-paper-sidebar text-gray-100 flex justify-between md:hidden shrink-0">
       <router-link to="/fila" class="block p-4 text-white font-extrabold">{{ SYSTEM_TITLE }}</router-link>
       <button @click="sidebarOpen = !sidebarOpen" class="p-4 focus:outline-none focus:bg-paper-active-link" aria-label="Abrir menu">
@@ -24,7 +30,7 @@
           <QueueListIcon class="h-7 w-7 shrink-0 text-[#a9c6c7]" />
           <span v-if="!isCollapsed" class="text-lg font-extrabold leading-tight select-none">
             {{ SYSTEM_TITLE }}
-            <span class="block text-[11px] font-semibold text-gray-400 tracking-normal">Central de Marcação</span>
+            <span class="block text-xs font-semibold text-gray-300 tracking-normal">Central de Marcação</span>
           </span>
         </button>
 
@@ -46,7 +52,7 @@
 
       <div v-if="!isCollapsed" class="px-3 pt-3 pb-1 border-t border-white/10 text-xs text-gray-400 mt-auto">
         <p class="font-semibold text-gray-200 truncate">{{ APP_NAME }}</p>
-        <p class="text-[11px] text-gray-400 truncate">Versão {{ APP_VERSION }} | HC-UFPE</p>
+        <p class="text-xs text-gray-300 truncate">Versão {{ APP_VERSION }} | HC-UFPE</p>
       </div>
       <div v-else class="px-2 pt-3 pb-1 border-t border-white/10 text-[10px] text-center text-gray-400 mt-auto">
         v{{ APP_VERSION }}
@@ -55,7 +61,7 @@
 
     <div class="flex-1 flex flex-col bg-paper-bg overflow-hidden h-full min-w-0">
       <header class="flex justify-between items-center px-6 h-14 bg-surface border-b border-line shrink-0">
-        <h1 class="text-lg font-bold text-ink">{{ $route.meta.titulo || $route.name }}</h1>
+        <h1 class="text-xl font-extrabold text-ink">{{ $route.meta.titulo || $route.name }}</h1>
         <div>
           <router-link v-if="!authStore.isAuthenticated" to="/login">
             <Button variant="primary">
@@ -68,7 +74,7 @@
           <ProfileDropdown v-else />
         </div>
       </header>
-      <main class="flex-1 min-h-0 overflow-y-auto">
+      <main id="conteudo-principal" tabindex="-1" class="flex-1 min-h-0 overflow-y-auto focus:outline-none">
         <router-view />
       </main>
     </div>

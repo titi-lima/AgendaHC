@@ -2,19 +2,19 @@
   <span
     v-if="status !== 'PENDENTE'"
     :class="classes"
-    class="inline-flex items-center gap-1 rounded px-1.5 py-px text-[11px] font-bold whitespace-nowrap"
+    class="inline-flex items-center gap-1 rounded px-1.5 py-px text-xs font-bold whitespace-nowrap"
   >
     <component :is="icone" class="h-3 w-3" aria-hidden="true" />
-    {{ ROTULO_STATUS[status] }}
+    {{ ROTULO_STATUS[status] }}<template v-if="quando"> · {{ horaCurta(quando) }}</template>
   </span>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { PhoneIcon, PhoneXMarkIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/vue/16/solid';
-import { ROTULO_STATUS, type StatusItem } from '../lib/agenda';
+import { ROTULO_STATUS, horaCurta, type StatusItem } from '../lib/agenda';
 
-const props = defineProps<{ status: StatusItem }>();
+const props = defineProps<{ status: StatusItem; quando?: string | null }>();
 
 const classes = computed(() => ({
   PENDENTE: '',

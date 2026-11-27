@@ -6,6 +6,7 @@
   >
     <component :is="icone" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
     {{ motivo.rotulo }}
+    <span class="sr-only">: {{ motivo.detalhe }}</span>
   </span>
 </template>
 

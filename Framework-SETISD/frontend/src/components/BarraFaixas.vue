@@ -20,7 +20,7 @@ export const FAIXAS = [
   { rotulo: 'até 30 dias', cor: '#c9d9d9' },
   { rotulo: '31 a 60 dias', cor: '#e9c46f' },
   { rotulo: '61 a 90 dias', cor: '#d98a2b' },
-  { rotulo: 'mais de 90 dias', cor: '#a33811' },
+  { rotulo: 'mais de 90 dias', cor: '#7a5100' },
 ];
 </script>
 

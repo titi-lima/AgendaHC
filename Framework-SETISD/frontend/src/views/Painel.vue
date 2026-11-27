@@ -7,7 +7,8 @@
     </div>
 
     <template v-else-if="dados">
-      <section class="rounded-lg bg-surface ring-1 ring-line p-5">
+      <section class="rounded-lg bg-surface ring-1 ring-line p-5" aria-labelledby="titulo-visao-geral">
+        <h2 id="titulo-visao-geral" class="text-base font-extrabold text-ink mb-3">Visão geral</h2>
         <dl class="flex flex-wrap gap-x-10 gap-y-3">
           <div>
             <dt class="text-xs font-bold text-ink-muted">Exames pendentes</dt>
@@ -42,7 +43,7 @@
       </section>
 
       <section class="rounded-lg bg-surface ring-1 ring-line overflow-hidden">
-        <h2 class="px-5 pt-4 pb-3 text-sm font-extrabold text-ink">Demanda por unidade</h2>
+        <h2 class="px-5 pt-4 pb-3 text-base font-extrabold text-ink">Demanda por unidade</h2>
         <table class="w-full text-sm">
           <thead class="text-left text-xs font-bold text-ink-muted border-y border-line bg-surface-sunken whitespace-nowrap">
             <tr>
@@ -57,7 +58,14 @@
           </thead>
           <tbody>
             <tr v-for="u in dados.unidades" :key="u.unidade" class="border-b border-line last:border-0 align-top">
-              <th scope="row" class="pl-5 pr-2 py-3 text-left font-bold text-ink">{{ nomeUnidade(u.unidade) }}</th>
+              <th scope="row" class="pl-5 pr-2 py-3 text-left font-bold">
+                <router-link
+                  :to="{ path: '/fila', query: { unidade: u.unidade } }"
+                  class="text-ink underline decoration-line-strong underline-offset-4 hover:text-acao hover:decoration-acao"
+                >
+                  {{ nomeUnidade(u.unidade) }}
+                </router-link>
+              </th>
               <td class="tabular px-2 py-3 text-right font-bold text-ink">{{ u.pendentes }}</td>
               <td class="tabular px-2 py-3 text-right text-ink">{{ u.espera_mediana }} d</td>
               <td class="tabular px-2 py-3 text-right text-ink">{{ u.espera_maxima }} d</td>
@@ -74,6 +82,7 @@
       </section>
 
       <p class="text-xs text-ink-muted max-w-3xl">
+        A espera é contada da data da solicitação até hoje. Clique numa unidade para abrir a fila dela.
         Indicadores que dependem de dados ainda ausentes no extrato do AGHU (agendados após a data de retorno,
         antecedência por município) aparecem aqui quando a TI incluir os campos.
       </p>

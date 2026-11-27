@@ -7,7 +7,7 @@
     <template v-else-if="dados">
       <section class="rounded-lg bg-surface ring-1 ring-line overflow-hidden">
         <div class="px-5 pt-4 pb-3 border-b border-line">
-          <h2 class="text-sm font-extrabold text-ink">Ordem dos critérios por unidade</h2>
+          <h2 class="text-base font-extrabold text-ink">Ordem dos critérios por unidade</h2>
           <p class="text-xs text-ink-muted mt-0.5">A fila aplica os critérios de cima para baixo. Cada alteração gera uma nova versão e fica registrada na auditoria.</p>
         </div>
         <div class="grid md:grid-cols-[16rem_1fr]">
@@ -15,7 +15,8 @@
             <li v-for="r in dados.regras" :key="r.unidade">
               <button
                 type="button"
-                @click="escolher(r)"
+                @click="trocarRegra(r)"
+                :aria-current="edicao?.unidade === r.unidade ? 'true' : undefined"
                 :class="edicao?.unidade === r.unidade ? 'bg-surface text-ink font-bold ring-1 ring-line' : 'text-ink-muted hover:text-ink'"
                 class="w-full flex items-baseline justify-between gap-2 px-4 py-2 text-left text-sm"
               >
@@ -27,7 +28,7 @@
 
           <form v-if="edicao" @submit.prevent="salvar" class="p-5 space-y-4">
             <div class="flex flex-wrap items-baseline gap-x-3">
-              <h3 class="text-base font-extrabold text-ink">{{ edicao.unidade === '*' ? 'Regra padrão' : nomeUnidade(edicao.unidade) }}</h3>
+              <h3 class="text-sm font-extrabold text-ink">{{ edicao.unidade === '*' ? 'Regra padrão' : nomeUnidade(edicao.unidade) }}</h3>
               <span class="text-xs text-ink-muted">
                 versão {{ edicao.versao }}
                 <template v-if="edicao.exemplo"> · regra de exemplo, a validar com a Central</template>
@@ -52,7 +53,7 @@
 
             <label class="flex items-center gap-3 text-sm text-ink">
               <span class="font-semibold">Limite de espera</span>
-              <input v-model.number="edicao.espera_limite_dias" type="number" min="1" max="365" class="tabular w-20 rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm" />
+              <input v-model.number="edicao.espera_limite_dias" type="number" min="1" max="365" class="tabular w-20 rounded-md border border-campo bg-surface px-2 py-1.5 text-sm" />
               <span class="text-ink-muted">dias</span>
             </label>
 
@@ -73,30 +74,41 @@
       <section class="rounded-lg bg-surface ring-1 ring-line overflow-hidden">
         <div class="px-5 pt-4 pb-3 flex items-baseline justify-between gap-3">
           <div>
-            <h2 class="text-sm font-extrabold text-ink">Lista de prioridade</h2>
+            <h2 class="text-base font-extrabold text-ink">Lista de prioridade</h2>
             <p class="text-xs text-ink-muted mt-0.5">Mantida pelas áreas solicitantes. Substitui as listas avulsas enviadas à Central.</p>
           </div>
         </div>
         <table class="w-full text-sm">
           <thead class="text-left text-xs font-bold text-ink-muted border-y border-line bg-surface-sunken whitespace-nowrap">
             <tr>
-              <th scope="col" class="pl-5 pr-2 py-2">Prontuário</th>
+              <th scope="col" class="pl-5 pr-2 py-2">Paciente</th>
               <th scope="col" class="px-2 py-2">Área</th>
               <th scope="col" class="px-2 py-2">Motivo</th>
               <th scope="col" class="px-2 py-2">Vale para</th>
-              <th scope="col" class="px-2 py-2">Origem</th>
+              <th scope="col" class="px-2 py-2">Incluído por</th>
               <th scope="col" class="pl-2 pr-5 py-2"><span class="sr-only">Ações</span></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="p in dados.prioritarios" :key="p.id" class="border-b border-line last:border-0">
-              <td class="tabular pl-5 pr-2 py-2.5 text-ink">{{ p.prontuario }}</td>
+              <td class="pl-5 pr-2 py-2.5">
+                <p class="font-semibold text-ink">{{ p.nome ?? 'Fora do extrato atual' }}</p>
+                <p class="tabular text-xs text-ink-muted">Pront. {{ p.prontuario }}</p>
+              </td>
               <td class="px-2 py-2.5 font-bold text-lista-ink">{{ p.area }}</td>
               <td class="px-2 py-2.5 text-ink">{{ p.motivo }}</td>
               <td class="px-2 py-2.5 text-ink-muted">{{ p.unidade ? nomeUnidade(p.unidade) : 'Todas as unidades' }}</td>
-              <td class="px-2 py-2.5 text-ink-muted">{{ p.exemplo ? 'Exemplo' : 'Incluído na fila' }}</td>
-              <td class="pl-2 pr-5 py-2.5 text-right">
-                <button type="button" @click="remover(p)" class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-ink-muted hover:bg-separar-bg hover:text-separar-ink">
+              <td class="px-2 py-2.5 text-ink-muted">
+                <template v-if="p.exemplo">Exemplo</template>
+                <template v-else>{{ p.criado_por }} · {{ dataHora(p.criado_em) }}</template>
+              </td>
+              <td class="pl-2 pr-5 py-2.5 text-right whitespace-nowrap">
+                <span v-if="confirmando === p.id" class="inline-flex items-center gap-1">
+                  <span class="text-xs text-ink">Remover da lista?</span>
+                  <button type="button" @click="remover(p)" :disabled="removendo" class="rounded bg-separar-ink px-2 py-1 text-xs font-bold text-white hover:opacity-90 disabled:opacity-60">Confirmar</button>
+                  <button type="button" @click="confirmando = null" class="rounded px-2 py-1 text-xs font-semibold text-ink-muted hover:text-ink">Cancelar</button>
+                </span>
+                <button v-else type="button" @click="confirmando = p.id ?? null" :aria-label="`Remover ${p.nome ?? 'prontuário ' + p.prontuario} da lista de prioridade`" class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-ink-muted hover:bg-separar-bg hover:text-separar-ink">
                   <TrashIcon class="h-3.5 w-3.5" aria-hidden="true" /> Remover
                 </button>
               </td>
@@ -107,7 +119,7 @@
 
       <section class="rounded-lg bg-surface ring-1 ring-line overflow-hidden">
         <div class="px-5 pt-4 pb-3">
-          <h2 class="text-sm font-extrabold text-ink">Combinações de exames</h2>
+          <h2 class="text-base font-extrabold text-ink">Combinações de exames</h2>
           <p class="text-xs text-ink-muted mt-0.5">Regras de exemplo montadas a partir dos pares mais frequentes no extrato. A UDI precisa validar cada uma.</p>
         </div>
         <table class="w-full text-sm">
@@ -137,7 +149,7 @@ import { useToast } from 'vue-toastification';
 import { ChevronUpIcon, ChevronDownIcon, TrashIcon } from '@heroicons/vue/20/solid';
 import api from '../services/api';
 import AlertaCombinacao from '../components/AlertaCombinacao.vue';
-import { ROTULO_CRITERIO, exameCurto, nomeUnidade, type Prioridade, type Regra, type TipoCombinacao } from '../lib/agenda';
+import { ROTULO_CRITERIO, dataHora, exameCurto, nomeUnidade, type Prioridade, type Regra, type TipoCombinacao } from '../lib/agenda';
 
 interface RespostaRegras {
   criterios_disponiveis: string[];
@@ -158,6 +170,14 @@ const alterada = computed(() =>
   (edicao.value.criterios.join() !== original.value.criterios.join() ||
     edicao.value.espera_limite_dias !== original.value.espera_limite_dias),
 );
+
+const confirmando = ref<number | null>(null);
+const removendo = ref(false);
+
+function trocarRegra(r: Regra) {
+  if (alterada.value && !window.confirm('Descartar as alterações não salvas desta regra?')) return;
+  escolher(r);
+}
 
 function escolher(r: Regra) {
   original.value = r;
@@ -205,9 +225,17 @@ async function salvar() {
 }
 
 async function remover(p: Prioridade) {
-  await api.delete(`/api/regras/prioritarios/${p.id}`);
-  toast.success(`Prontuário ${p.prontuario} removido da lista de prioridade.`);
-  await carregar(edicao.value?.unidade);
+  removendo.value = true;
+  try {
+    await api.delete(`/api/regras/prioritarios/${p.id}`);
+    toast.success(`${p.nome ?? `Prontuário ${p.prontuario}`} saiu da lista de prioridade.`);
+    confirmando.value = null;
+    await carregar(edicao.value?.unidade);
+  } catch (e: any) {
+    toast.error(e?.response?.data?.detail ?? 'Não foi possível remover. Tente de novo.');
+  } finally {
+    removendo.value = false;
+  }
 }
 
 onMounted(() => carregar());

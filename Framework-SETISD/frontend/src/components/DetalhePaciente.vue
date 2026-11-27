@@ -3,9 +3,20 @@
     <div class="sticky top-0 z-10 bg-surface border-b border-line px-5 pt-4 pb-3">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
-          <h2 id="detalhe-titulo" tabindex="-1" class="text-base font-extrabold text-ink leading-snug rounded focus-visible:outline-2 focus-visible:outline-acao">{{ paciente?.nome ?? '…' }}</h2>
-          <p class="tabular text-xs text-ink-muted">
-            <template v-if="paciente?.prontuario">Prontuário {{ paciente.prontuario }}</template>
+          <h2 id="detalhe-titulo" tabindex="-1" class="text-lg font-extrabold text-ink leading-snug rounded focus-visible:outline-2 focus-visible:outline-acao">{{ paciente?.nome ?? '…' }}</h2>
+          <p class="tabular flex items-center gap-1 text-xs text-ink-muted">
+            <template v-if="paciente?.prontuario">
+              Prontuário {{ paciente.prontuario }}
+              <button
+                type="button"
+                @click="copiar(paciente.prontuario, 'prontuario')"
+                :aria-label="copiado === 'prontuario' ? 'Prontuário copiado' : 'Copiar prontuário'"
+                class="inline-flex items-center gap-0.5 rounded px-1 py-0.5 font-semibold text-acao hover:bg-acao-suave"
+              >
+                <component :is="copiado === 'prontuario' ? CheckIcon : ClipboardDocumentIcon" class="h-3.5 w-3.5" aria-hidden="true" />
+                {{ copiado === 'prontuario' ? 'Copiado' : 'Copiar' }}
+              </button>
+            </template>
             <template v-else-if="paciente">Sem prontuário no extrato</template>
           </p>
         </div>
@@ -46,11 +57,21 @@
           <li v-for="i in paciente.itens" :key="i.codigo_solicitacao + i.codigo_exame" class="py-3 first:pt-1 last:pb-0">
             <div>
               <div class="flex items-start justify-between gap-2">
-                <p class="font-bold text-ink text-sm leading-snug">{{ exameCurto(i.nome_exame) }}</p>
-                <StatusTag :status="i.status" />
+                <p :id="`exame-${chaveDom(i)}`" tabindex="-1" class="font-bold text-ink text-sm leading-snug rounded focus-visible:outline-2 focus-visible:outline-acao">{{ exameCurto(i.nome_exame) }}</p>
+                <StatusTag :status="i.status" :quando="i.status_info?.criado_em" />
               </div>
-              <p class="tabular mt-0.5 text-xs text-ink-muted">
-                {{ nomeUnidade(i.unidade) }} · Solic. {{ i.codigo_solicitacao }} · {{ dataCompleta(i.data_solicitacao) }} · {{ i.espera_dias }} dias
+              <p class="tabular mt-0.5 flex flex-wrap items-center gap-x-1 text-xs text-ink-muted">
+                <span>{{ nomeUnidade(i.unidade) }} ·</span>
+                <span>Solic. {{ i.codigo_solicitacao }}</span>
+                <button
+                  type="button"
+                  @click="copiar(i.codigo_solicitacao, chaveItem(i))"
+                  :aria-label="copiado === chaveItem(i) ? 'Número da solicitação copiado' : `Copiar solicitação ${i.codigo_solicitacao}`"
+                  class="inline-flex items-center rounded p-0.5 text-acao hover:bg-acao-suave"
+                >
+                  <component :is="copiado === chaveItem(i) ? CheckIcon : ClipboardDocumentIcon" class="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+                <span>· {{ dataCompleta(i.data_solicitacao) }} · {{ i.espera_dias }} dias</span>
               </p>
               <p v-if="i.status_info?.data_agendada" class="mt-1 text-xs font-semibold text-ok-ink">
                 Agendado para {{ dataCompleta(i.status_info.data_agendada) }}
@@ -60,13 +81,14 @@
                 v-if="!finalizado(i.status) && aberto !== chaveItem(i)"
                 type="button"
                 @click="abrirRegistro(i)"
+                :aria-label="`Registrar resultado: ${exameCurto(i.nome_exame)}`"
                 class="mt-2 text-xs font-bold text-acao hover:text-acao-hover underline underline-offset-2"
               >
                 Registrar resultado
               </button>
             </div>
 
-            <form v-if="aberto === chaveItem(i)" @submit.prevent="registrar(i)" class="mt-3 space-y-3">
+            <form v-if="aberto === chaveItem(i)" :id="`form-${chaveDom(i)}`" @submit.prevent="registrar(i)" class="mt-3 space-y-3">
               <fieldset>
                 <legend class="text-xs font-bold text-ink mb-1.5">Resultado</legend>
                 <div class="grid grid-cols-2 gap-1.5">
@@ -84,11 +106,11 @@
               </fieldset>
               <label v-if="form.status === 'AGENDADO'" class="block">
                 <span class="text-xs font-bold text-ink">Data marcada no AGHU</span>
-                <input v-model="form.data" type="date" required class="mt-1 block w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm text-ink" />
+                <input v-model="form.data" type="date" required class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink" />
               </label>
               <label class="block">
                 <span class="text-xs font-bold text-ink">Observação <span class="font-normal text-ink-muted">(opcional)</span></span>
-                <textarea v-model="form.observacao" rows="2" class="mt-1 block w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm text-ink" placeholder="Ex.: paciente pediu horário pela manhã"></textarea>
+                <textarea v-model="form.observacao" rows="2" class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink" placeholder="Ex.: paciente pediu horário pela manhã"></textarea>
               </label>
               <p v-if="erroForm" class="text-xs font-semibold text-separar-ink" role="alert">{{ erroForm }}</p>
               <div class="flex items-center gap-2">
@@ -97,7 +119,7 @@
                 </button>
                 <button type="button" @click="aberto = null" class="rounded-md px-3 py-1.5 text-sm font-semibold text-ink-muted hover:text-ink">Cancelar</button>
               </div>
-              <p class="text-[11px] text-ink-muted">A marcação é feita no AGHU. Aqui fica só o registro do resultado.</p>
+              <p class="text-xs text-ink-muted">A marcação é feita no AGHU. Aqui fica só o registro do resultado.</p>
             </form>
           </li>
         </ul>
@@ -116,29 +138,46 @@
           <button
             v-if="!formPrioridade.aberto"
             type="button"
-            @click="formPrioridade.aberto = true"
-            class="inline-flex items-center gap-1.5 rounded-md ring-1 ring-line-strong bg-surface px-3 py-1.5 text-sm font-semibold text-ink hover:bg-surface-sunken"
+            @click="abrirPrioridade"
+            class="inline-flex items-center gap-1.5 rounded-md ring-1 ring-campo bg-surface px-3 py-1.5 text-sm font-semibold text-ink hover:bg-surface-sunken"
           >
             <UserPlusIcon class="h-4 w-4 text-acao" aria-hidden="true" />
             Incluir na lista de prioridade
           </button>
-          <form v-else @submit.prevent="incluirPrioridade" class="space-y-2.5">
+          <form v-else id="form-prioridade" @submit.prevent="incluirPrioridade" class="space-y-2.5">
             <label class="block">
               <span class="text-xs font-bold text-ink">Área responsável</span>
-              <select v-model="formPrioridade.area" class="mt-1 block w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm text-ink">
+              <select v-model="formPrioridade.area" required class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink">
+                <option value="" disabled>Selecione a área</option>
                 <option>Nefrologia</option>
                 <option>Oncologia</option>
                 <option>Cardiologia</option>
-                <option>Outra</option>
+                <option value="Outra">Outra…</option>
               </select>
+            </label>
+            <label v-if="formPrioridade.area === 'Outra'" class="block">
+              <span class="text-xs font-bold text-ink">Nome da área</span>
+              <input v-model="formPrioridade.areaOutra" required type="text" class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink" />
             </label>
             <label class="block">
               <span class="text-xs font-bold text-ink">Motivo</span>
-              <input v-model="formPrioridade.motivo" required type="text" placeholder="Ex.: paciente em hemodiálise" class="mt-1 block w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm text-ink" />
+              <input v-model="formPrioridade.motivo" required type="text" placeholder="Ex.: paciente em hemodiálise" class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-muted" />
             </label>
+            <label class="block">
+              <span class="text-xs font-bold text-ink">Vale para</span>
+              <select v-model="formPrioridade.valePara" class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink">
+                <option v-for="u in unidadesDoPaciente" :key="u" :value="u">{{ nomeUnidade(u) }}</option>
+                <option value="">Todas as unidades</option>
+              </select>
+            </label>
+            <p class="text-xs text-ink">
+              {{ paciente.nome }} passa à frente de quem não está na lista em
+              <strong class="font-bold">{{ formPrioridade.valePara ? nomeUnidade(formPrioridade.valePara) : 'todas as unidades' }}</strong>.
+              Dá para desfazer logo após incluir.
+            </p>
             <p v-if="erroPrioridade" class="text-xs font-semibold text-separar-ink" role="alert">{{ erroPrioridade }}</p>
             <div class="flex items-center gap-2">
-              <button type="submit" :disabled="salvando" class="rounded-md bg-acao px-3 py-1.5 text-sm font-bold text-white hover:bg-acao-hover disabled:bg-paper-disabled">Incluir</button>
+              <button type="submit" :disabled="salvando" class="rounded-md bg-acao px-3 py-1.5 text-sm font-bold text-white hover:bg-acao-hover disabled:bg-paper-disabled">Incluir e reordenar</button>
               <button type="button" @click="formPrioridade.aberto = false" class="rounded-md px-3 py-1.5 text-sm font-semibold text-ink-muted hover:text-ink">Cancelar</button>
             </div>
           </form>
@@ -168,8 +207,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
-import { XMarkIcon, UserPlusIcon, InformationCircleIcon } from '@heroicons/vue/20/solid';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { XMarkIcon, UserPlusIcon, InformationCircleIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/20/solid';
 import { PhoneIcon, PhoneXMarkIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/vue/20/solid';
 import api from '../services/api';
 import MotivoChip from './MotivoChip.vue';
@@ -194,7 +233,7 @@ interface DetalheResposta {
 const props = defineProps<{ chave: string; posicao: number; motivo: Motivo; unidade: string | null }>();
 const emit = defineEmits<{
   (e: 'fechar'): void;
-  (e: 'alterado', evento: { tipo: 'prioridade' | 'tratamento'; mensagem: string }): void;
+  (e: 'alterado', evento: { tipo: 'prioridade' | 'tratamento'; mensagem: string; desfazerPrioridadeId?: number }): void;
 }>();
 
 const paciente = ref<DetalheResposta | null>(null);
@@ -205,7 +244,42 @@ const erroForm = ref('');
 const erroCarga = ref('');
 const erroPrioridade = ref('');
 const form = reactive<{ status: StatusItem | ''; data: string; observacao: string }>({ status: '', data: '', observacao: '' });
-const formPrioridade = reactive({ aberto: false, area: 'Nefrologia', motivo: '' });
+const formPrioridade = reactive({ aberto: false, area: '', areaOutra: '', motivo: '', valePara: '' });
+const copiado = ref<string | null>(null);
+
+const unidadesDoPaciente = computed(() => {
+  const unidades = (paciente.value?.itens ?? []).filter((i) => !finalizado(i.status)).map((i) => i.unidade);
+  return [...new Set(unidades)];
+});
+
+function chaveDom(i: ItemFila) {
+  return `${i.codigo_solicitacao}-${i.codigo_exame}`.replace(/[^A-Za-z0-9_-]/g, '');
+}
+
+async function copiar(texto: string, marca: string) {
+  try {
+    await navigator.clipboard.writeText(texto);
+    copiado.value = marca;
+    setTimeout(() => {
+      if (copiado.value === marca) copiado.value = null;
+    }, 1800);
+  } catch {
+    copiado.value = null;
+  }
+}
+
+async function abrirPrioridade() {
+  formPrioridade.aberto = true;
+  formPrioridade.area = '';
+  formPrioridade.areaOutra = '';
+  formPrioridade.motivo = '';
+  formPrioridade.valePara = props.unidade && unidadesDoPaciente.value.includes(props.unidade)
+    ? props.unidade
+    : unidadesDoPaciente.value[0] ?? '';
+  erroPrioridade.value = '';
+  await nextTick();
+  document.querySelector<HTMLElement>('#form-prioridade select')?.focus();
+}
 
 const opcoesStatus = [
   { valor: 'EM_CONTATO', rotulo: 'Em contato', icone: PhoneIcon },
@@ -227,12 +301,14 @@ function exameDoCodigo(codigo: string) {
   return item ? exameCurto(item.nome_exame) : codigo;
 }
 
-function abrirRegistro(i: ItemFila) {
+async function abrirRegistro(i: ItemFila) {
   aberto.value = chaveItem(i);
   form.status = '';
   form.data = '';
   form.observacao = '';
   erroForm.value = '';
+  await nextTick();
+  document.querySelector<HTMLInputElement>(`#form-${chaveDom(i)} input[type=radio]`)?.focus();
 }
 
 async function carregar() {
@@ -267,6 +343,8 @@ async function registrar(i: ItemFila) {
     aberto.value = null;
     await carregar();
     emit('alterado', { tipo: 'tratamento', mensagem: `${exameCurto(i.nome_exame)}: ${ROTULO_STATUS[form.status as StatusItem]}.` });
+    await nextTick();
+    document.getElementById(`exame-${chaveDom(i)}`)?.focus();
   } catch (e: any) {
     erroForm.value = e?.response?.data?.detail ?? 'Não foi possível registrar. Tente de novo.';
   } finally {
@@ -279,17 +357,16 @@ async function incluirPrioridade() {
   salvando.value = true;
   erroPrioridade.value = '';
   try {
-    const unidadeDoPaciente = props.unidade ?? null;
-    await api.post('/api/regras/prioritarios', {
+    const area = formPrioridade.area === 'Outra' ? formPrioridade.areaOutra.trim() : formPrioridade.area;
+    const { data } = await api.post<{ id: number }>('/api/regras/prioritarios', {
       prontuario: paciente.value.prontuario,
-      area: formPrioridade.area,
+      area,
       motivo: formPrioridade.motivo,
-      unidade: unidadeDoPaciente,
+      unidade: formPrioridade.valePara || null,
     });
     formPrioridade.aberto = false;
-    formPrioridade.motivo = '';
     await carregar();
-    emit('alterado', { tipo: 'prioridade', mensagem: `Incluído na lista de prioridade (${formPrioridade.area}).` });
+    emit('alterado', { tipo: 'prioridade', mensagem: `Incluído na lista de prioridade (${area}).`, desfazerPrioridadeId: data.id });
   } catch (e: any) {
     erroPrioridade.value = e?.response?.data?.detail ?? 'Não foi possível incluir. Tente de novo.';
   } finally {
