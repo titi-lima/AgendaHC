@@ -610,6 +610,15 @@ TRATAMENTOS_EXEMPLO = [
     ("CANCELADO", 3, "Exemplo: paciente já fez o exame em outro serviço"),
 ]
 
+def momento_de_hoje(agora: datetime, horas: int) -> datetime:
+    local = agora.astimezone()
+    inicio_do_dia = local.replace(hour=0, minute=0, second=0, microsecond=0)
+    candidato = local - timedelta(hours=horas)
+    if candidato < inicio_do_dia:
+        candidato = local - (local - inicio_do_dia) * (horas / (horas + 1))
+    return candidato.astimezone(timezone.utc)
+
+
 UNIDADES_DOS_EXEMPLOS = ("UDI: MAMOGRAFIA", "UDI: DENSITOMETRIA ÓSSEA", "UDI: ULTRASSONOGRAFIA")
 
 
@@ -684,6 +693,8 @@ async def semear_dados_exemplo(
         escolhidos = escolher_pacientes_para_exemplo(itens, reservados, len(TRATAMENTOS_EXEMPLO))
         for item, (status, horas, observacao) in zip(escolhidos, TRATAMENTOS_EXEMPLO):
             momento = agora - timedelta(hours=horas)
+            if status in STATUS_QUE_SAEM_DA_FILA:
+                momento = momento_de_hoje(agora, horas)
             base = dict(
                 codigo_solicitacao=item["codigo_solicitacao"], codigo_exame=item["codigo_exame"],
                 prontuario=item["prontuario"], usuario="sistema", exemplo=True,

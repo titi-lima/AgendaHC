@@ -115,6 +115,16 @@ def tratamento(solicitacao, status, horas_atras, codigo="USAX", desfaz=False):
     }
 
 
+def test_exemplo_finalizado_cai_sempre_no_dia_de_hoje():
+    from datetime import timezone
+    from src.controllers.fila_controller import momento_de_hoje
+    agora = datetime.now().astimezone().replace(hour=0, minute=20).astimezone(timezone.utc)
+    for horas in (1, 2, 3):
+        momento = momento_de_hoje(agora, horas)
+        assert momento.astimezone().date() == agora.astimezone().date()
+        assert momento <= agora
+
+
 def test_desfazer_volta_ao_estado_anterior_e_nao_conta_tentativa():
     status = consolidar_tratamentos([
         tratamento("10", "EM_CONTATO", 30),

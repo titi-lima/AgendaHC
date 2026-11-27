@@ -164,6 +164,8 @@ const CORRECOES_AGHU: [RegExp, string][] = [
   [/-\s{2,}/g, '- '],
 ];
 
+const SIGLAS = /\b(usg|dmsa|dtpa|rx|tc|rm)\b/gi;
+
 function corrigirAghu(texto: string): string {
   return CORRECOES_AGHU.reduce((t, [padrao, correto]) => t.replace(padrao, correto), texto.toUpperCase());
 }
@@ -197,7 +199,7 @@ export function dataHora(iso: string | null | undefined): string {
 
 export function exameCurto(nome: string): string {
   const corrigido = corrigirAghu(nome);
-  return corrigido.charAt(0) + corrigido.slice(1).toLowerCase();
+  return (corrigido.charAt(0) + corrigido.slice(1).toLowerCase()).replace(SIGLAS, (sigla) => sigla.toUpperCase());
 }
 
 export function quandoCurto(iso: string | null | undefined): string {
@@ -214,7 +216,8 @@ export function listaPt(itens: string[]): string {
 }
 
 export function exameParaPaciente(nome: string): string {
-  return exameCurto(nome).replace(/^Usg\b/i, 'Ultrassonografia de').toLowerCase();
+  const legivel = exameCurto(nome).replace(/^USG\b/, 'Ultrassonografia de');
+  return legivel.charAt(0).toLowerCase() + legivel.slice(1);
 }
 
 export function horaCurta(iso: string | null | undefined): string {

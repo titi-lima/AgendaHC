@@ -49,7 +49,7 @@ uv run pytest
 uv run python audit_framework.py .
 ```
 
-Resultado atual: 28 testes passando e 11/11 pilares do auditor. O `audit_framework.py` do framework tem um erro na função `colorize` (usa `ENDC` em vez de `Colors.ENDC`) e para antes do relatório; o resultado acima foi obtido sem alterar o arquivo, definindo `ENDC` antes de executá-lo.
+Resultado atual: 30 testes passando e 11/11 pilares do auditor. O `audit_framework.py` do framework tem um erro na função `colorize` (usa `ENDC` em vez de `Colors.ENDC`) e para antes do relatório; o resultado acima foi obtido sem alterar o arquivo, definindo `ENDC` antes de executá-lo.
 
 ## Capturas de tela
 

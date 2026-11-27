@@ -66,7 +66,7 @@ with sync_playwright() as p:
     pagina.wait_for_timeout(600)
 
     detalhe(pagina).get_by_role("button", name="Registrar resultado").first.click()
-    escolher_resultado(pagina, "Agendado no AGHU")
+    escolher_resultado(pagina, "Agendado")
     detalhe(pagina).locator("input[type=date]").fill("2026-12-04")
     detalhe(pagina).locator("form textarea").first.fill("Paciente confirmou por telefone")
     captura(pagina, "04-registrar-resultado")

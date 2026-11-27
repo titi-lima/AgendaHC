@@ -504,7 +504,7 @@ const opcoesLote = [
 const opcoesStatus = [
   { valor: 'EM_CONTATO', rotulo: 'Em contato', icone: PhoneIcon },
   { valor: 'SEM_CONTATO', rotulo: 'Sem contato', icone: PhoneXMarkIcon },
-  { valor: 'AGENDADO', rotulo: 'Agendado no AGHU', icone: CheckCircleIcon },
+  { valor: 'AGENDADO', rotulo: 'Agendado', icone: CheckCircleIcon },
   { valor: 'CANCELADO', rotulo: 'Cancelado', icone: XCircleIcon },
 ] as const;
 

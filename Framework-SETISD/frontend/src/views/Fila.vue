@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-full min-h-0">
-    <nav v-if="!compacto" class="hidden lg:block w-60 shrink-0 border-r border-line bg-paper-bg overflow-y-auto py-4" aria-label="Unidades">
+    <nav v-if="!compacto" class="hidden xl:block w-60 shrink-0 border-r border-line bg-paper-bg overflow-y-auto py-4" aria-label="Unidades">
       <p class="flex items-baseline justify-between px-4 pb-2 text-xs font-bold text-ink-muted">
         <span>Unidades</span>
         <span class="font-semibold">exames</span>
@@ -39,7 +39,7 @@
           </label>
           <select
             v-model="unidadeSelect"
-            :class="compacto ? '' : 'lg:hidden'"
+            :class="compacto ? '' : 'xl:hidden'"
             class="rounded-md border border-campo bg-surface px-3 py-2 text-sm text-ink"
             aria-label="Unidade"
           >
@@ -81,7 +81,7 @@
               type="button"
               @click="exportarCsv"
               :disabled="!gruposFiltrados.length"
-              class="inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-acao hover:bg-acao-suave disabled:opacity-50"
+              class="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 font-semibold text-acao hover:bg-acao-suave disabled:opacity-50"
               title="Baixa a lista atual (com filtros e busca) em CSV para abrir no Excel"
             >
               <ArrowDownTrayIcon class="h-4 w-4" aria-hidden="true" />
@@ -160,7 +160,7 @@
         </div>
       </div>
 
-      <div id="conteudo-aba" role="tabpanel" :aria-labelledby="`aba-${aba}`" class="relative flex-1 min-h-0 overflow-y-auto" ref="areaTabela">
+      <div id="conteudo-aba" role="tabpanel" :aria-labelledby="`aba-${aba}`" class="relative flex-1 min-h-0 overflow-auto" ref="areaTabela">
         <div
           v-if="dados && semVagas"
           class="flex flex-wrap items-baseline gap-x-2 border-b border-line bg-espera-bg px-6 py-2 text-sm text-espera-ink"
@@ -182,15 +182,15 @@
           <button type="button" @click="carregar()" class="mt-3 rounded-md bg-acao px-3 py-1.5 text-sm font-bold text-white hover:bg-acao-hover">Tentar de novo</button>
         </div>
 
-        <table v-else class="w-full table-fixed text-sm" aria-describedby="ajuda-teclado">
+        <table v-else :class="compacto ? 'min-w-[44rem]' : 'min-w-[60rem]'" class="w-full table-fixed text-sm" aria-describedby="ajuda-teclado">
           <thead ref="cabecalho" class="sticky top-0 z-10 bg-paper-bg/95 backdrop-blur-sm text-left text-xs font-bold text-ink-muted">
             <tr class="border-b border-line">
               <th scope="col" class="w-[4.75rem] pl-6 pr-1 py-2">{{ aba === 'finalizados' ? 'Registro' : 'Posição' }}</th>
               <th scope="col" :class="compacto ? 'w-[12rem]' : 'w-[16rem]'" class="px-2 py-2">Paciente</th>
               <th scope="col" class="px-2 py-2">{{ aba === 'finalizados' ? 'Exames finalizados' : 'Exames pendentes' }}</th>
               <th scope="col" class="w-[4.5rem] px-2 py-2 text-right">Espera</th>
-              <th scope="col" :class="compacto ? 'w-[10.5rem] pr-6' : 'w-[11.5rem]'" class="px-2 py-2">{{ aba === 'a_chamar' ? 'Motivo da posição' : 'Situação' }}</th>
-              <th v-if="!compacto" scope="col" class="w-[9.5rem] pl-2 pr-6 py-2">Combinação</th>
+              <th v-if="mostraSituacao" scope="col" :class="compacto ? 'w-[10.5rem] pr-6' : 'w-[11.5rem]'" class="px-2 py-2">{{ aba === 'a_chamar' ? 'Motivo da posição' : 'Situação' }}</th>
+              <th v-if="mostraCombinacao" scope="col" class="w-[9.5rem] pl-2 pr-6 py-2">Combinação</th>
             </tr>
           </thead>
           <tbody v-if="carregando && !dados">
@@ -233,7 +233,7 @@
                       <span class="sr-only">posições acima</span>
                     </span>
                   </div>
-                  <span v-else class="tabular text-xs font-semibold text-ink-muted">{{ horaCurta(l.g.registrado_em) }}</span>
+                  <span v-else class="tabular text-xs font-semibold text-ink-muted">{{ horaDoRegistro(l.g.registrado_em) }}</span>
                 </td>
                 <td class="px-2 py-2.5">
                   <p class="font-bold text-ink leading-snug break-words">{{ l.g.nome }}</p>
@@ -265,7 +265,7 @@
                   <span class="tabular font-bold" :class="l.g.espera_dias > (dados?.regra.espera_limite_dias ?? 60) ? 'text-espera-ink' : 'text-ink'">{{ l.g.espera_dias }}</span>
                   <span class="text-xs text-ink-muted"> dias</span>
                 </td>
-                <td class="px-2 py-2.5" :class="compacto ? 'pr-6' : ''">
+                <td v-if="mostraSituacao" class="px-2 py-2.5" :class="compacto ? 'pr-6' : ''">
                   <div class="flex flex-col items-start gap-1">
                     <MotivoChip v-if="aba === 'a_chamar' || l.g.motivo.tipo === 'LISTA'" :motivo="l.g.motivo" />
                     <p
@@ -285,7 +285,7 @@
                     </template>
                   </div>
                 </td>
-                <td v-if="!compacto" class="pl-2 pr-6 py-2.5">
+                <td v-if="mostraCombinacao" class="pl-2 pr-6 py-2.5">
                   <div class="flex flex-col items-start gap-1">
                     <AlertaCombinacao v-for="a in alertasDaLinha(l.g)" :key="a.alerta.tipo + a.alerta.exames.join()" :alerta="a.alerta" :rotulo="a.rotulo" />
                   </div>
@@ -363,7 +363,6 @@ import {
   dataCurta,
   exameCurto,
   hojeIso,
-  horaCurta,
   nomeUnidade,
   quandoCurto,
   type Aba,
@@ -491,7 +490,16 @@ const gruposVisiveis = computed(() => gruposFiltrados.value.slice(0, limite.valu
 
 const compacto = computed(() => !!selecionado.value);
 
-const colunas = computed(() => (compacto.value ? 5 : 6));
+const mostraSituacao = computed(() => aba.value !== 'finalizados');
+
+const mostraCombinacao = computed(() => !compacto.value && aba.value !== 'finalizados');
+
+const colunas = computed(() => 4 + (mostraSituacao.value ? 1 : 0) + (mostraCombinacao.value ? 1 : 0));
+
+function horaDoRegistro(iso: string | undefined) {
+  if (!iso) return '';
+  return new Date(iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
 
 const nomeDoExame = computed(() => dados.value?.exames.find((e) => e.codigo === exame.value)?.nome ?? exame.value ?? '');
 
