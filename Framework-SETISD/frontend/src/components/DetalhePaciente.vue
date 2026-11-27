@@ -26,7 +26,7 @@
       </div>
       <div class="mt-2 flex flex-wrap items-center gap-2 text-sm">
         <span class="tabular font-extrabold text-ink">{{ posicao !== null ? `${posicao}º na fila` : 'Finalizado hoje' }}</span>
-        <MotivoChip :motivo="motivo" />
+        <MotivoChip v-if="motivo.tipo !== 'FINAL'" :motivo="motivo" />
       </div>
       <p class="mt-1 text-xs text-ink-muted">{{ motivo.detalhe }}</p>
     </div>
@@ -48,8 +48,7 @@
           <AlertaCombinacao :alerta="a" />
           <p class="mt-1.5 text-ink">{{ a.orientacao }}</p>
           <p class="mt-1 text-xs text-ink-muted">
-            {{ a.exames.map(exameCurto).join(' + ') }}<template v-if="a.exemplo"> · regra de exemplo</template>
-            <template v-if="a.tipo === 'DUPLICIDADE'"> · RF015</template>
+            {{ a.exames.map(exameCurto).join(' + ') }}<template v-if="a.exemplo"> (regra de exemplo)</template>
           </p>
         </div>
       </section>
@@ -106,8 +105,7 @@
                 <StatusTag :status="i.status" :quando="i.status_info?.criado_em" :quem="i.status_info?.usuario" />
               </div>
               <p class="tabular mt-0.5 flex flex-wrap items-center gap-x-1 text-xs text-ink-muted">
-                <span>{{ nomeUnidade(i.unidade) }} ·</span>
-                <span>Solic. {{ i.codigo_solicitacao }}</span>
+                <span>{{ nomeUnidade(i.unidade) }}, solicitação {{ i.codigo_solicitacao }}</span>
                 <button
                   type="button"
                   @click="copiar(i.codigo_solicitacao, chaveItem(i))"
@@ -116,17 +114,18 @@
                 >
                   <component :is="copiado === chaveItem(i) ? CheckIcon : ClipboardDocumentIcon" class="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
-                <span>· {{ dataCompleta(i.data_solicitacao) }} · {{ i.espera_dias }} dias</span>
               </p>
-              <p v-if="i.solicitante" class="mt-0.5 text-xs text-ink-muted">Pedido por {{ i.solicitante }}</p>
+              <p class="tabular text-xs text-ink-muted">
+                Pedido<template v-if="i.solicitante"> por {{ i.solicitante }}</template> em {{ dataCompleta(i.data_solicitacao) }}, há {{ i.espera_dias }} dias
+              </p>
               <p v-if="i.vagas === 0 && !finalizado(i.status)" class="mt-1 text-xs font-semibold text-espera-ink">Agenda deste exame sem vagas abertas.</p>
               <p
                 v-if="i.status === 'EM_CONTATO' && i.status_info?.horas !== null && i.status_info?.horas !== undefined"
                 :class="i.status_info.prazo_vencido ? 'text-separar-ink' : 'text-ink-muted'"
                 class="mt-1 text-xs font-semibold"
               >
-                <template v-if="i.status_info.prazo_vencido">Sem resposta há {{ i.status_info.horas }}h: o prazo de {{ prazoRespostaHoras }}h venceu. Ofereça a vaga ao próximo.</template>
-                <template v-else>Aguardando resposta há {{ i.status_info.horas }}h (prazo de {{ prazoRespostaHoras }}h).</template>
+                <template v-if="i.status_info.prazo_vencido">Sem resposta há {{ i.status_info.horas }}h, além do prazo de {{ prazoRespostaHoras }}h. Ofereça a vaga ao próximo.</template>
+                <template v-else>Aguardando resposta há {{ i.status_info.horas }}h, de um prazo de {{ prazoRespostaHoras }}h.</template>
               </p>
               <p v-if="(i.status_info?.tentativas ?? 0) > 0 && !finalizado(i.status)" class="mt-0.5 text-xs text-ink-muted">
                 {{ i.status_info?.tentativas }} {{ i.status_info?.tentativas === 1 ? 'tentativa de contato' : 'tentativas de contato' }}
@@ -135,7 +134,7 @@
                 Aparece {{ i.quantidade }} vezes na mesma solicitação do AGHU; o resultado vale para todas.
               </p>
               <p v-if="i.status_info?.data_agendada" :class="i.status === 'AGENDADO' ? 'text-ok-ink' : 'text-ink'" class="mt-1 text-xs font-semibold">
-                {{ i.status === 'AGENDADO' ? 'Agendado para' : 'Data oferecida:' }} {{ dataCompleta(i.status_info.data_agendada) }}
+                {{ i.status === 'AGENDADO' ? 'Agendado para' : 'Vaga oferecida para' }} {{ dataCompleta(i.status_info.data_agendada) }}
                 <button
                   v-if="i.status === 'AGENDADO' || i.status === 'EM_CONTATO'"
                   type="button"
@@ -149,7 +148,7 @@
               <p v-if="i.status_info?.observacao" class="mt-1 text-xs text-ink">“{{ i.status_info.observacao }}”</p>
               <details v-if="i.preparo && !finalizado(i.status)" class="mt-1.5 text-xs">
                 <summary class="cursor-pointer font-semibold text-ink-muted hover:text-ink">
-                  Preparo<template v-if="i.preparo.exemplo"> · texto de exemplo, a validar com a UDI</template>
+                  Preparo<template v-if="i.preparo.exemplo"> (exemplo, a validar com a UDI)</template>
                 </summary>
                 <p class="mt-1 text-ink text-pretty">{{ i.preparo.texto }}</p>
               </details>
@@ -189,30 +188,35 @@
                   </label>
                 </div>
               </fieldset>
-              <label v-if="form.status === 'AGENDADO' || form.status === 'EM_CONTATO'" class="block">
-                <span class="text-xs font-bold text-ink">
-                  <template v-if="form.status === 'AGENDADO'">Data marcada no AGHU</template>
-                  <template v-else>Data oferecida ao paciente <span class="font-normal text-ink-muted">(opcional)</span></template>
-                </span>
-                <input v-model="form.data" type="date" :required="form.status === 'AGENDADO'" class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink" />
-              </label>
+              <div v-if="form.status === 'AGENDADO' || form.status === 'EM_CONTATO'" class="grid grid-cols-[1fr_7rem] gap-2">
+                <label class="block">
+                  <span class="text-xs font-bold text-ink">
+                    <template v-if="form.status === 'AGENDADO'">Data marcada no AGHU</template>
+                    <template v-else>Data oferecida <span class="font-normal text-ink-muted">(opcional)</span></template>
+                  </span>
+                  <input v-model="form.data" type="date" :required="form.status === 'AGENDADO'" class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink" />
+                </label>
+                <label class="block">
+                  <span class="text-xs font-bold text-ink">Horário</span>
+                  <input v-model="form.hora" type="time" class="tabular mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink" />
+                </label>
+              </div>
               <div v-if="(form.status === 'AGENDADO' || form.status === 'EM_CONTATO') && form.data" class="rounded-md bg-surface-sunken p-2.5 ring-1 ring-line">
                 <p class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs font-bold text-ink">
                   Mensagem para o paciente
                   <button
                     type="button"
-                    @click="copiar(mensagemPara(i, form.status as StatusItem, form.data), `form-msg-${chaveItem(i)}`)"
+                    @click="copiar(mensagemPara(i, form.status as StatusItem, form.data, form.hora), `form-msg-${chaveItem(i)}`)"
                     class="inline-flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 font-bold text-acao hover:bg-acao-suave"
                   >
                     <component :is="copiado === `form-msg-${chaveItem(i)}` ? CheckIcon : ClipboardDocumentIcon" class="h-3.5 w-3.5" aria-hidden="true" />
                     {{ copiado === `form-msg-${chaveItem(i)}` ? 'Copiada' : 'Copiar para o WhatsApp' }}
                   </button>
                 </p>
-                <p class="mt-1.5 whitespace-pre-line text-xs text-ink text-pretty">{{ mensagemPara(i, form.status as StatusItem, form.data) }}</p>
+                <p class="mt-1.5 whitespace-pre-line text-xs text-ink text-pretty">{{ mensagemPara(i, form.status as StatusItem, form.data, form.hora) }}</p>
                 <p v-if="form.status === 'AGENDADO' && i.preparo?.exemplo" class="mt-1.5 text-xs text-ink-muted">
-                  O preparo deste exame ainda é texto de exemplo. Ele entra na mensagem depois que a UDI revisar e salvar em Regras.
+                  O preparo fica fora da mensagem até a UDI revisar o texto em Regras.
                 </p>
-                <p class="mt-1.5 text-xs text-ink-muted">O AgendaHC não envia mensagens: cole no WhatsApp da Central.</p>
               </div>
               <label class="block">
                 <span class="text-xs font-bold text-ink">
@@ -228,7 +232,6 @@
                 </button>
                 <button type="button" @click="aberto = null" class="rounded-md px-3 py-1.5 text-sm font-semibold text-ink-muted hover:text-ink">Cancelar</button>
               </div>
-              <p class="text-xs text-ink-muted">A marcação é feita no AGHU. Aqui fica só o registro do resultado.</p>
             </form>
           </li>
         </ul>
@@ -240,8 +243,7 @@
           <li v-for="p in paciente.prioridades" :key="p.id" class="flex items-baseline gap-2">
             <span class="font-bold text-lista-ink">{{ p.area }}</span>
             <span class="text-ink">{{ p.motivo }}</span>
-            <span v-if="p.validade" class="text-xs text-ink-muted">· até {{ dataCompleta(p.validade) }}</span>
-            <span v-if="p.exemplo" class="text-xs text-ink-muted">· exemplo</span>
+            <span v-if="p.validade || p.exemplo" class="text-xs text-ink-muted">({{ [p.validade ? `até ${dataCompleta(p.validade)}` : '', p.exemplo ? 'exemplo' : ''].filter(Boolean).join(', ') }})</span>
           </li>
         </ul>
         <template v-else-if="paciente.prontuario">
@@ -296,13 +298,13 @@
             </div>
           </form>
         </template>
-        <p v-else class="text-sm text-ink-muted">Sem prontuário no extrato: não é possível incluir na lista.</p>
+        <p v-else class="text-sm text-ink-muted">Sem prontuário no extrato. Não dá para incluir na lista.</p>
       </section>
 
       <section class="px-5 py-4">
         <div class="flex gap-2 text-xs text-ink-muted">
           <InformationCircleIcon class="h-4 w-4 shrink-0 text-ink-muted" aria-hidden="true" />
-          <p>Sem dado no extrato do AGHU: {{ paciente.dados_ausentes.join(', ') }}. Esses critérios entram na ordenação quando a TI incluir os campos.</p>
+          <p>Sem dado no AGHU: {{ listaPt(paciente.dados_ausentes) }}.</p>
         </div>
       </section>
 
@@ -312,14 +314,13 @@
           <li v-for="(h, n) in paciente.historico" :key="n" class="flex gap-2">
             <span class="tabular text-xs text-ink-muted w-24 shrink-0 pt-0.5">{{ dataHora(h.criado_em) }}</span>
             <span v-if="h.tipo === 'PRIORIDADE'" class="text-ink">
-              <strong class="font-bold">Lista de prioridade · {{ h.area }}</strong>
-              <template v-if="h.exemplo"> · exemplo</template>
-              <template v-else-if="!h.ativo"> · desfeito ou removido</template>
-              · {{ h.usuario }}
+              <strong class="font-bold">Incluído na lista da {{ h.area }}</strong>
+              <span class="block text-xs text-ink-muted">{{ h.exemplo ? 'Registro de exemplo' : h.usuario }}<template v-if="!h.exemplo && !h.ativo">, depois desfeito ou removido</template></span>
             </span>
             <span v-else class="text-ink">
               <strong class="font-bold">{{ h.desfaz ? 'Desfeito' : h.status === 'PENDENTE' ? 'Reaberto' : ROTULO_STATUS[h.status as StatusItem] }}</strong>
-              · {{ exameDoCodigo(h.codigo_exame ?? '') }} · {{ h.usuario }}<template v-if="h.exemplo"> · exemplo</template>
+              {{ exameDoCodigo(h.codigo_exame ?? '') }}
+              <span class="block text-xs text-ink-muted">{{ h.exemplo ? 'Registro de exemplo' : h.usuario }}</span>
               <span v-if="h.observacao" class="block text-xs text-ink-muted">“{{ h.observacao }}”</span>
             </span>
           </li>
@@ -339,7 +340,7 @@ import MotivoChip from './MotivoChip.vue';
 import StatusTag from './StatusTag.vue';
 import AlertaCombinacao from './AlertaCombinacao.vue';
 import {
-  ROTULO_STATUS, dataCompleta, dataHora, exameCurto, hojeIso, nomeUnidade, primeiroNome,
+  ROTULO_STATUS, dataCompleta, dataHora, exameCurto, exameParaPaciente, hojeIso, listaPt, nomeUnidade, primeiroNome,
   type Aba, type Alerta, type ItemFila, type Motivo, type Prioridade, type StatusItem,
 } from '../lib/agenda';
 
@@ -390,7 +391,7 @@ const aberto = ref<string | null>(null);
 const erroForm = ref('');
 const erroCarga = ref('');
 const erroPrioridade = ref('');
-const form = reactive<{ status: StatusItem | ''; data: string; observacao: string }>({ status: '', data: '', observacao: '' });
+const form = reactive<{ status: StatusItem | ''; data: string; hora: string; observacao: string }>({ status: '', data: '', hora: '', observacao: '' });
 const formPrioridade = reactive({ aberto: false, area: '', areaOutra: '', motivo: '', valePara: '', validade: '' });
 const lote = reactive<{ aberto: boolean; status: StatusItem | ''; observacao: string }>({ aberto: false, status: '', observacao: '' });
 const erroLote = ref('');
@@ -405,20 +406,21 @@ const DESTINO: Record<StatusItem, Aba> = {
   CANCELADO: 'finalizados',
 };
 
-function mensagemPara(i: ItemFila, status: StatusItem, dataIso: string | null | undefined) {
+function mensagemPara(i: ItemFila, status: StatusItem, dataIso: string | null | undefined, hora = '') {
   const nome = primeiroNome(paciente.value?.nome ?? '');
-  const exame = exameCurto(i.nome_exame);
-  const data = dataCompleta(dataIso);
+  const exame = exameParaPaciente(i.nome_exame);
+  const quando = `${dataCompleta(dataIso)}${hora ? ` às ${hora}` : ''}`;
+  const local = `no setor de ${nomeUnidade(i.unidade)} do HC-UFPE`;
+  const linhas = [`Olá, ${nome}. Aqui é a Central de Marcação do HC-UFPE.`];
   if (status === 'EM_CONTATO') {
-    return `Olá, ${nome}. Aqui é a Central de Marcação do HC-UFPE.\n`
-      + `Temos vaga para o seu exame ${exame} no dia ${data}.\n`
-      + `Responda em até ${props.prazoRespostaHoras} horas confirmando se pode comparecer. Sem resposta nesse prazo, a vaga passa para o próximo paciente da fila.`;
+    linhas.push(`Temos vaga para o seu exame de ${exame} no dia ${quando}, ${local}.`);
+    linhas.push(`Responda em até ${props.prazoRespostaHoras} horas confirmando se pode vir. Sem resposta nesse prazo, a vaga passa para o próximo paciente da fila.`);
+    return linhas.join('\n');
   }
-  const preparo = i.preparo && !i.preparo.exemplo ? i.preparo.texto : '[preparo a confirmar com a UDI]';
-  return `Olá, ${nome}. Aqui é a Central de Marcação do HC-UFPE.\n`
-    + `Seu exame ${exame} está marcado para ${data}.\n`
-    + `Preparo: ${preparo}\n`
-    + 'Leve documento com foto, cartão do SUS e o pedido do exame.';
+  linhas.push(`Seu exame de ${exame} está marcado para ${quando}, ${local}.`);
+  if (i.preparo && !i.preparo.exemplo) linhas.push(`Preparo: ${i.preparo.texto}`);
+  linhas.push('Leve documento com foto, cartão do SUS e o pedido do exame.');
+  return linhas.join('\n');
 }
 
 async function abrirLote() {
@@ -523,6 +525,7 @@ async function abrirRegistro(i: ItemFila) {
   aberto.value = chaveItem(i);
   form.status = '';
   form.data = '';
+  form.hora = '';
   form.observacao = '';
   erroForm.value = '';
   await nextTick();

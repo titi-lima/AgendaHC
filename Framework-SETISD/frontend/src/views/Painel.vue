@@ -1,7 +1,7 @@
 <template>
   <div class="px-6 py-5 max-w-[1280px] space-y-6">
     <div v-if="dados" class="flex flex-wrap items-center justify-between gap-2">
-      <p class="text-xs text-ink-muted">{{ dados.fonte }} · indicadores calculados na leitura</p>
+      <p class="text-xs text-ink-muted">{{ dados.fonte }}</p>
       <button
         type="button"
         @click="exportarCsv"
@@ -60,29 +60,26 @@
 
       <div class="grid gap-6 lg:grid-cols-2">
         <section class="rounded-lg bg-surface ring-1 ring-line p-5" aria-labelledby="titulo-prioridade">
-          <h2 id="titulo-prioridade" class="text-base font-extrabold text-ink">A lista de prioridade está funcionando?</h2>
-          <p class="mt-0.5 text-xs text-ink-muted">Espera mediana dos exames pendentes de quem está na lista, comparada com os demais.</p>
-          <dl class="mt-4 grid grid-cols-2 gap-4">
-            <div class="rounded-md bg-lista-bg/60 p-3">
+          <h2 id="titulo-prioridade" class="text-base font-extrabold text-ink">Espera da lista de prioridade</h2>
+          <p class="mt-0.5 text-xs text-ink-muted">Espera mediana dos exames pendentes, em dias.</p>
+          <dl class="mt-4 grid grid-cols-2 divide-x divide-line">
+            <div class="pr-5">
               <dt class="text-xs font-bold text-lista-ink">Na lista de prioridade</dt>
               <dd class="mt-1 flex items-baseline gap-1.5">
                 <span class="tabular text-3xl font-extrabold text-lista-ink">{{ dados.prioridade.lista.espera_mediana }}</span>
                 <span class="text-sm text-ink-muted">dias</span>
               </dd>
-              <dd class="tabular text-xs text-ink-muted">{{ dados.prioridade.lista.pacientes }} pacientes · {{ dados.prioridade.lista.exames }} exames</dd>
+              <dd class="tabular text-xs text-ink-muted">{{ dados.prioridade.lista.pacientes }} pacientes ({{ dados.prioridade.lista.exames }} exames)</dd>
             </div>
-            <div class="rounded-md bg-surface-sunken p-3 ring-1 ring-line">
+            <div class="pl-5">
               <dt class="text-xs font-bold text-ink-muted">Demais pacientes</dt>
               <dd class="mt-1 flex items-baseline gap-1.5">
                 <span class="tabular text-3xl font-extrabold text-ink">{{ dados.prioridade.demais.espera_mediana }}</span>
                 <span class="text-sm text-ink-muted">dias</span>
               </dd>
-              <dd class="tabular text-xs text-ink-muted">{{ dados.prioridade.demais.pacientes }} pacientes · {{ dados.prioridade.demais.exames }} exames</dd>
+              <dd class="tabular text-xs text-ink-muted">{{ dados.prioridade.demais.pacientes }} pacientes ({{ dados.prioridade.demais.exames }} exames)</dd>
             </div>
           </dl>
-          <p class="mt-3 text-xs text-ink-muted text-pretty">
-            A pergunta do RF017 é se os prioritários são atendidos antes. Com o histórico de agendamentos, este quadro passa a comparar o tempo até a marcação, não só a espera atual.
-          </p>
         </section>
 
         <section class="rounded-lg bg-surface ring-1 ring-line p-5" aria-labelledby="titulo-contato">
@@ -143,9 +140,12 @@
               </td>
               <td class="px-3 py-3.5"><BarraFaixas :faixas="u.faixas" /></td>
               <td class="pl-2 pr-5 py-3 text-xs text-ink-muted">
-                <span v-for="(e, n) in u.principais_exames" :key="e.exame">
-                  {{ exameCurto(e.exame) }} <strong class="tabular text-ink">{{ e.pendentes }}</strong><template v-if="n < u.principais_exames.length - 1"> · </template>
-                </span>
+                <ul class="space-y-0.5">
+                  <li v-for="e in u.principais_exames" :key="e.exame" class="flex items-baseline justify-between gap-3">
+                    <span>{{ exameCurto(e.exame) }}</span>
+                    <strong class="tabular text-ink">{{ e.pendentes }}</strong>
+                  </li>
+                </ul>
               </td>
             </tr>
           </tbody>
@@ -154,8 +154,6 @@
 
       <p class="text-xs text-ink-muted max-w-prose text-pretty">
         A espera é contada da data da solicitação até hoje. Clique numa unidade para abrir a fila dela.
-        Indicadores que dependem de dados ainda ausentes no extrato do AGHU (agendados após a data de retorno,
-        antecedência por município) aparecem aqui quando a TI incluir os campos.
       </p>
     </template>
   </div>

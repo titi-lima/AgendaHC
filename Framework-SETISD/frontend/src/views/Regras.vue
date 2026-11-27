@@ -19,8 +19,7 @@
         <div class="px-5 pt-4 pb-3 border-b border-line">
           <h2 class="text-base font-extrabold text-ink">Ordem dos critérios por unidade e por exame</h2>
           <p class="text-xs text-ink-muted mt-0.5">
-            A fila aplica os critérios de cima para baixo. Um exame pode ter regra própria (RN-03); ela vale quando a fila é filtrada por esse exame.
-            Cada alteração gera uma nova versão e fica no histórico abaixo.
+            A fila aplica os critérios de cima para baixo. A regra própria de um exame vale quando a fila está filtrada por ele.
           </p>
         </div>
         <div class="grid md:grid-cols-[17rem_1fr]">
@@ -36,7 +35,7 @@
                   class="w-full flex items-baseline justify-between gap-2 px-4 py-2 text-left text-sm"
                 >
                   <span class="truncate">{{ nomeDaRegra(r) }}</span>
-                  <span class="tabular text-xs shrink-0">v{{ r.versao }}</span>
+                  <span v-if="r.versao > 1" class="tabular text-xs shrink-0">versão {{ r.versao }}</span>
                 </button>
               </li>
             </ul>
@@ -51,7 +50,7 @@
                   class="w-full flex items-baseline justify-between gap-2 px-4 py-2 text-left text-sm"
                 >
                   <span class="truncate">{{ nomeDaRegra(r) }}</span>
-                  <span class="tabular text-xs shrink-0">v{{ r.versao }}</span>
+                  <span v-if="r.versao > 1" class="tabular text-xs shrink-0">versão {{ r.versao }}</span>
                 </button>
               </li>
               <li v-if="!dados.regras_exame.length" class="px-4 py-1 text-xs text-ink-muted">Nenhuma ainda.</li>
@@ -61,7 +60,9 @@
                 <span class="sr-only">Exame para criar regra própria</span>
                 <select v-model="novaRegraExame" class="block w-full rounded-md border border-campo bg-surface px-2 py-1.5 text-xs text-ink">
                   <option value="">Criar regra para um exame…</option>
-                  <option v-for="e in examesSemRegra" :key="e.codigo" :value="e.codigo">{{ exameCurto(e.nome) }} · {{ nomeUnidade(e.unidade) }}</option>
+                  <optgroup v-for="g in examesSemRegraPorUnidade" :key="g.unidade" :label="nomeUnidade(g.unidade)">
+                    <option v-for="e in g.exames" :key="e.codigo" :value="e.codigo">{{ exameCurto(e.nome) }}</option>
+                  </optgroup>
                 </select>
               </label>
               <button v-if="novaRegraExame" type="submit" :disabled="salvando" class="rounded-md bg-acao px-2.5 py-1 text-xs font-bold text-white hover:bg-acao-hover disabled:opacity-60">
@@ -75,8 +76,8 @@
               <h3 class="text-sm font-extrabold text-ink">{{ edicao.unidade === '*' ? 'Regra padrão' : nomeDaRegra(edicao) }}</h3>
               <span class="text-xs text-ink-muted">
                 versão {{ edicao.versao }}
-                <template v-if="edicao.exemplo"> · regra de exemplo, a validar com a Central</template>
-                <template v-else> · alterada por {{ edicao.atualizado_por }}</template>
+                <template v-if="edicao.exemplo"> (exemplo, a validar com a Central)</template>
+                <template v-else>, alterada por {{ edicao.atualizado_por }}</template>
               </span>
             </div>
             <p v-if="ehRegraDeExame(edicao.unidade)" class="text-xs text-ink-muted max-w-lg">
@@ -153,7 +154,7 @@
         <form v-if="lote.aberto" id="form-lote-prioridade" @submit.prevent="incluirLote" class="mx-5 mb-4 grid gap-3 rounded-md bg-surface-sunken p-4 ring-1 ring-line md:grid-cols-[1fr_1fr]">
           <label class="block md:row-span-3">
             <span class="text-xs font-bold text-ink">Prontuários</span>
-            <span class="block text-xs text-ink-muted">Um por linha, ou cole a lista enviada pela área (vírgula, ponto e vírgula ou espaço).</span>
+            <span class="block text-xs text-ink-muted">Um por linha. Também aceita a lista da área separada por vírgula, ponto e vírgula ou espaço.</span>
             <textarea v-model="lote.prontuarios" required rows="7" class="tabular mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink" placeholder="Um prontuário por linha"></textarea>
             <span class="mt-1 block text-xs text-ink-muted">{{ contagemColada }}</span>
           </label>
@@ -216,7 +217,7 @@
             <tr v-for="p in dados.prioritarios" :key="p.id" class="border-b border-line last:border-0">
               <td class="pl-5 pr-2 py-2.5">
                 <p class="font-semibold text-ink">{{ p.nome ?? 'Sem solicitação no extrato atual' }}</p>
-                <p class="tabular text-xs text-ink-muted">Pront. {{ p.prontuario }}</p>
+                <p class="tabular text-xs text-ink-muted">Prontuário {{ p.prontuario }}</p>
               </td>
               <td class="px-2 py-2.5 font-bold text-lista-ink">{{ p.area }}</td>
               <td class="px-2 py-2.5 text-ink">{{ p.motivo }}</td>
@@ -225,8 +226,8 @@
                 {{ p.validade ? `até ${dataCompleta(p.validade)}` : 'sem prazo' }}
               </td>
               <td class="px-2 py-2.5 text-ink-muted">
-                <template v-if="p.exemplo">Exemplo</template>
-                <template v-else>{{ p.criado_por }} · {{ dataHora(p.criado_em) }}</template>
+                <template v-if="p.exemplo">Registro de exemplo</template>
+                <template v-else>{{ p.criado_por }} em {{ dataHora(p.criado_em) }}</template>
               </td>
               <td class="pl-2 pr-5 py-2.5 text-right whitespace-nowrap">
                 <span v-if="confirmando === p.id" class="inline-flex items-center gap-1">
@@ -248,8 +249,7 @@
           <div>
             <h2 class="text-base font-extrabold text-ink">Preparo por exame</h2>
             <p class="text-xs text-ink-muted mt-0.5">
-              O marcador vê o preparo no detalhe do paciente e na mensagem para o WhatsApp (RF020).
-              Os textos de exemplo não entram na mensagem até a UDI revisar e salvar.
+              Aparece no detalhe do paciente e na mensagem para o WhatsApp. Texto de exemplo só entra na mensagem depois de revisado.
             </p>
           </div>
           <label class="flex items-center gap-2 text-xs font-bold text-ink-muted">
@@ -287,7 +287,7 @@
                   <p class="text-ink text-pretty">{{ e.preparo?.texto }}</p>
                   <p class="mt-0.5 text-xs text-ink-muted">
                     <template v-if="e.preparo?.exemplo">Texto de exemplo, a validar com a UDI</template>
-                    <template v-else>Revisado por {{ e.preparo?.atualizado_por }} · {{ dataHora(e.preparo?.atualizado_em) }}</template>
+                    <template v-else>Revisado por {{ e.preparo?.atualizado_por }} em {{ dataHora(e.preparo?.atualizado_em) }}</template>
                   </p>
                 </template>
               </td>
@@ -325,7 +325,7 @@
       <section id="sec-historico" class="rounded-lg bg-surface ring-1 ring-line overflow-hidden scroll-mt-4">
         <div class="px-5 pt-4 pb-3">
           <h2 class="text-base font-extrabold text-ink">Histórico de alterações</h2>
-          <p class="text-xs text-ink-muted mt-0.5">Regras, lista de prioridade, vagas e preparo. Vem da trilha de auditoria, que não pode ser editada.</p>
+          <p class="text-xs text-ink-muted mt-0.5">Regras, lista de prioridade, vagas e preparo, tirados da auditoria.</p>
         </div>
         <table v-if="auditoria.length" class="w-full text-sm">
           <thead class="text-left text-xs font-bold text-ink-muted border-y border-line bg-surface-sunken whitespace-nowrap">
@@ -446,6 +446,12 @@ const examesSemRegra = computed(() => {
   return (dados.value?.exames ?? []).filter((e) => !comRegra.has(e.codigo));
 });
 
+const examesSemRegraPorUnidade = computed(() => {
+  const grupos = new Map<string, ExameCatalogo[]>();
+  for (const e of examesSemRegra.value) grupos.set(e.unidade, [...(grupos.get(e.unidade) ?? []), e]);
+  return [...grupos.entries()].map(([unidade, exames]) => ({ unidade, exames }));
+});
+
 const examesComPreparo = computed(() =>
   (dados.value?.exames ?? []).filter((e) => e.preparo || e.codigo === editandoPreparo.value),
 );
@@ -487,7 +493,7 @@ function nomeDoRecurso(recurso: string) {
   const valor = resto.join(':');
   if (tipo === 'exame') return exameCurto(examesPorCodigo.value.get(valor)?.nome ?? valor);
   if (tipo === 'regra') return nomeDaRegra({ unidade: valor } as Regra);
-  if (tipo === 'prontuario') return `Pront. ${valor}`;
+  if (tipo === 'prontuario') return `Prontuário ${valor}`;
   return recurso;
 }
 
@@ -500,19 +506,19 @@ function descreverAuditoria(a: RegistroAuditoria) {
       const ordem = (lista?: string[]) => (lista ?? []).map((c) => ROTULO_CRITERIO[c] ?? c).join(' › ');
       const mudouOrdem = (antes.criterios ?? []).join() !== (depois.criterios ?? []).join();
       const mudouLimite = antes.espera_limite_dias !== depois.espera_limite_dias;
-      const partes = [`${alvo} v${antes.versao} → v${depois.versao}`];
-      if (mudouOrdem) partes.push(`ordem: ${ordem(depois.criterios)}`);
-      if (mudouLimite) partes.push(`limite ${antes.espera_limite_dias} → ${depois.espera_limite_dias} dias`);
-      return partes.join(' · ');
+      const partes = [`${alvo}, da versão ${antes.versao} para a ${depois.versao}`];
+      if (mudouOrdem) partes.push(`nova ordem ${ordem(depois.criterios)}`);
+      if (mudouLimite) partes.push(`limite de ${antes.espera_limite_dias} para ${depois.espera_limite_dias} dias`);
+      return partes.join(', ');
     }
     case 'INCLUIR_PACIENTE_PRIORITARIO':
-      return `${alvo} · ${depois.area}${depois.validade ? ` até ${dataCompleta(depois.validade)}` : ''}${depois.em_lote ? ' · lista colada' : ''}`;
+      return `${alvo}, ${depois.area}${depois.validade ? ` até ${dataCompleta(depois.validade)}` : ''}${depois.em_lote ? ' (lista colada)' : ''}`;
     case 'REMOVER_PACIENTE_PRIORITARIO':
-      return `${alvo} · ${antes.area ?? ''}`;
+      return `${alvo}, ${antes.area ?? ''}`;
     case 'ALTERAR_VAGAS_EXAME':
-      return `${alvo}: ${antes.vagas ?? '—'} → ${depois.vagas ?? '—'}`;
+      return `${alvo}, de ${antes.vagas ?? 'nenhuma'} para ${depois.vagas ?? 'nenhuma'}`;
     case 'ALTERAR_PREPARO_EXAME':
-      return depois.texto ? `${alvo}: texto revisado` : `${alvo}: preparo removido`;
+      return depois.texto ? `${alvo}, texto revisado` : `${alvo}, preparo removido`;
     default:
       return alvo;
   }

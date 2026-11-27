@@ -200,6 +200,23 @@ export function exameCurto(nome: string): string {
   return corrigido.charAt(0) + corrigido.slice(1).toLowerCase();
 }
 
+export function quandoCurto(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`);
+  if (d.toDateString() === new Date().toDateString()) {
+    return `às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  return `em ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
+}
+
+export function listaPt(itens: string[]): string {
+  return new Intl.ListFormat('pt-BR', { style: 'long', type: 'conjunction' }).format(itens);
+}
+
+export function exameParaPaciente(nome: string): string {
+  return exameCurto(nome).replace(/^Usg\b/i, 'Ultrassonografia de').toLowerCase();
+}
+
 export function horaCurta(iso: string | null | undefined): string {
   if (!iso) return '';
   const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`);

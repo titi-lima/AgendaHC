@@ -6,14 +6,14 @@
     class="inline-flex items-center gap-1 rounded px-1.5 py-px text-xs font-bold whitespace-nowrap"
   >
     <component :is="icone" class="h-3 w-3" aria-hidden="true" />
-    {{ ROTULO_STATUS[status] }}<template v-if="quando"> · {{ horaCurta(quando) }}</template>
+    {{ quando ? `${ROTULO_STATUS[status]} ${quandoCurto(quando)}` : ROTULO_STATUS[status] }}
   </span>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { PhoneIcon, PhoneXMarkIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/vue/16/solid';
-import { ROTULO_STATUS, horaCurta, type StatusItem } from '../lib/agenda';
+import { ROTULO_STATUS, horaCurta, quandoCurto, type StatusItem } from '../lib/agenda';
 
 const props = defineProps<{ status: StatusItem; quando?: string | null; quem?: string | null }>();
 

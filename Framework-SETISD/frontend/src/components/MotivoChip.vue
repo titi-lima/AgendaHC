@@ -1,12 +1,12 @@
 <template>
   <span
-    :class="classes"
-    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap"
+    :class="motivo.tipo === 'CHEGADA' ? 'gap-1 font-semibold text-ink-muted' : ['gap-1.5 rounded-full px-2.5 py-0.5 font-bold', classes]"
+    class="inline-flex items-center text-xs whitespace-nowrap"
     :title="motivo.detalhe"
   >
     <component :is="icone" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
     {{ motivo.rotulo }}
-    <span class="sr-only">: {{ motivo.detalhe }}</span>
+    <span class="sr-only">({{ motivo.detalhe }})</span>
   </span>
 </template>
 
@@ -20,7 +20,7 @@ const props = defineProps<{ motivo: Motivo }>();
 const classes = computed(() => ({
   LISTA: 'bg-lista-bg text-lista-ink',
   ESPERA: 'bg-espera-bg text-espera-ink',
-  CHEGADA: 'bg-chegada-bg text-chegada-ink',
+  CHEGADA: '',
   FINAL: 'bg-ok-bg text-ok-ink',
 }[props.motivo.tipo]));
 

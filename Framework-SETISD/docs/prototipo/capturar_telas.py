@@ -48,7 +48,7 @@ with sync_playwright() as p:
     linhas = pagina.locator("tbody tr[data-chave]")
     escolhido = next(
         linhas.nth(i) for i in range(linhas.count())
-        if i > 8 and "renal" in linhas.nth(i).inner_text().lower() and "Lista ·" not in linhas.nth(i).inner_text()
+        if i > 8 and "renal" in linhas.nth(i).inner_text().lower() and "Lista da" not in linhas.nth(i).inner_text()
     )
     escolhido.click()
     pagina.wait_for_selector("text=Incluir na lista de prioridade")
@@ -83,7 +83,7 @@ with sync_playwright() as p:
     vagas = pagina.get_by_label("Vagas abertas")
     vagas.fill("5")
     vagas.press("Enter")
-    pagina.wait_for_selector("text=Linha das 5 vagas abertas")
+    pagina.wait_for_selector("text=5 vagas abertas acima desta linha")
     captura(pagina, "10-fila-exame-vagas")
 
     pagina.goto(f"{BASE}/fila?aba=em_contato")

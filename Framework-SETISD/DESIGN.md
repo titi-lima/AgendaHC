@@ -269,7 +269,7 @@ Corners are gently rounded and stay small. Bars use 2px. Status tags, alerts and
 - **Destructive:** quiet muted text that gets a vermilion tint on hover only (Remover).
 
 ### Reason chip (MotivoChip)
-A pill (full radius, 2px × 10px, 12px/700) with a 14px solid icon: list for Lista, clock for Espera, tray for Chegada. The title attribute carries the detailed reason. It appears in the row's Motivo column and in the detail-panel header.
+A pill (full radius, 2px × 10px, 12px/700) with a 14px solid icon: list for Lista, clock for Espera. Ordem de chegada is the default reason, so it renders as plain ink-muted 600 text with its tray icon and no pill; pills mark the exceptions. Outside A chamar only the Lista pill stays, because the tab already says the rest. The title attribute carries the detailed reason. It appears in the row's Motivo column and in the detail-panel header.
 
 ### Status tag and combination alert
 Small 4px-radius tags (1px × 6px, 12px/700) with a 12–14px icon. StatusTag stays hidden while an item is Pendente. Em contato, Sem contato, Agendado and Cancelado map to agrupar, separar, ok and chegada. AlertaCombinacao maps Separar, Ordem and Agrupar to their pairs, with the marcador guidance in its title. Pedido repetido (the same exam in two solicitações, RF015) is the one alert without a tint: white surface, ink text and a line-strong inset ring with a duplicate icon. It asks for a check, not an action, so it must not compete with Separar.
@@ -281,7 +281,7 @@ Surface white, sunken on hover, acao-suave when selected. A moved row is washed 
 Underline tabs sit on the bottom hairline of the queue header: A chamar, Em contato, Sem contato, Finalizados hoje. The active tab has a 2px acao underline and ink text, and each label carries its count in a 4px chegada tag. When anyone in Em contato has gone past the 24-hour answer window, a separar tag with "N > 24h" sits next to the count. Tabs filter the list but never renumber it: the position is always the patient's place in the whole queue, so gaps in A chamar mean someone is being contacted. Each tab except A chamar opens with a one-line sunken note that states its rule. In Em contato the Situação cell shows the hours waited, the hours left and who made the contact, and turns separar with "ofereça a vaga ao próximo" once the window is over.
 
 ### Slot cut line
-With an exam filter on, a 64px number field "Vagas abertas" sits in the toolbar. In A chamar, a full-width row with a 2px dashed acao top border on acao-suave is inserted after the patient who fills the last slot (counting in-scope exams, not patients). It reads "Linha das N vagas abertas: chame quem está acima." Zero slots does not draw a line. It shows an espera-tinted banner above the table instead, and every row stays visible.
+With an exam filter on, a 64px number field "Vagas abertas" sits in the toolbar. In A chamar, a full-width row with a 2px dashed acao top border on acao-suave is inserted after the Nth patient: one slot per patient, because the same exam twice for one patient is flagged as Pedido repetido rather than counted as two slots. It reads "N vagas abertas acima desta linha", is announced by screen readers, and is skipped by the arrow-key row navigation. Zero slots does not draw a line. It shows an espera-tinted banner above the table instead, and every row stays visible.
 
 ### Patient message
 When Em contato (with an offered date) or Agendado is chosen, the result form shows the ready-to-paste message in a sunken box with a "Copiar para o WhatsApp" button. The system never sends it. Example preparation texts are replaced by "[preparo a confirmar com a UDI]" until someone saves a reviewed text in Regras.
@@ -317,3 +317,7 @@ A stacked horizontal bar (10px, or 16px when tall, 2px radius, line track) with 
 - **Don't** use the framework's paper-primary/info/success/warning/danger fills for new actions. White text on them falls below 3:1.
 - **Don't** add uppercase tracked labels or eyebrow text above headings.
 - **Don't** convey state by tint alone. Every pair carries an icon and words.
+- **Don't** glue facts together with a middle dot. Pick the separator for the job: a line break for a run of facts, parentheses for a qualifier, a comma between two clauses, a real column for logs, and `Intl.ListFormat` for lists ("data de retorno, município e telefone").
+- **Don't** use a colon as a dramatic pause in a sentence ("Sem resposta há 31h: ofereça…"). Write two sentences.
+- **Don't** put spec codes (RN, RF, D) or meeting dates on screen. They belong in the docs.
+- **Don't** add a helper sentence that only describes the screen. Keep notes that state a rule the marcador must follow or say what is missing or example data.

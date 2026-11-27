@@ -19,9 +19,6 @@
           </button>
         </li>
       </ul>
-      <p class="px-4 pt-4 text-xs leading-relaxed text-ink-muted">
-        A fila agrupa os exames de cada paciente e mostra o motivo de cada posição.
-      </p>
     </nav>
 
     <section id="conteudo-fila" class="flex-1 min-w-0 flex flex-col">
@@ -56,7 +53,7 @@
           >
             <option value="">Todos os exames</option>
             <option v-for="e in dados?.exames ?? []" :key="e.codigo" :value="e.codigo">
-              {{ exameCurto(e.nome) }} ({{ e.pendentes }}){{ e.vagas === 0 ? ' · sem vagas' : '' }}
+              {{ exameCurto(e.nome) }} ({{ e.pendentes }}{{ e.vagas === 0 ? ', sem vagas' : '' }})
             </option>
           </select>
           <label v-if="exame" class="flex items-center gap-1.5 text-xs font-bold text-ink-muted">
@@ -76,8 +73,9 @@
             {{ gruposFiltrados.length }} {{ gruposFiltrados.length === 1 ? 'paciente encontrado' : 'pacientes encontrados' }}
           </p>
           <div class="ml-auto flex min-w-0 items-center gap-2 text-xs text-ink-muted">
-            <span v-if="dados" class="truncate" :title="`${dados.fonte} · lido ${horaLeitura}`">
-              <template v-if="!compacto">{{ dados.fonte }} · </template>lido {{ horaLeitura }}
+            <span v-if="dados" class="truncate" :title="`${dados.fonte}, lido ${horaLeitura}`">
+              <template v-if="!compacto">{{ dados.fonte }}, lido {{ horaLeitura }}</template>
+              <template v-else>Lido {{ horaLeitura }}</template>
             </span>
             <button
               type="button"
@@ -108,7 +106,7 @@
         >
           <div class="flex items-baseline gap-1.5">
             <dd :class="compacto ? 'text-sm' : 'text-xl'" class="tabular font-extrabold text-ink">{{ dados.resumo.pacientes }}</dd>
-            <dt class="text-ink-muted">pacientes<template v-if="!compacto"> · {{ dados.resumo.exames }} exames</template></dt>
+            <dt class="text-ink-muted">pacientes<template v-if="!compacto"> ({{ dados.resumo.exames }} exames)</template></dt>
           </div>
           <div class="flex items-baseline gap-1.5">
             <dd :class="compacto ? 'text-sm' : 'text-xl'" class="tabular font-extrabold text-lista-ink">{{ dados.resumo.prioritarios }}</dd>
@@ -120,7 +118,7 @@
           </div>
           <div class="flex items-baseline gap-1.5">
             <dd :class="[compacto ? 'text-sm' : 'text-xl', dados.resumo.espera_mediana > dados.regra.espera_limite_dias ? 'text-espera-ink' : 'text-ink']" class="tabular font-extrabold">{{ dados.resumo.espera_mediana }}</dd>
-            <dt class="text-ink-muted">dias de espera mediana<template v-if="!compacto"> · máx. {{ dados.resumo.espera_maxima }}</template></dt>
+            <dt class="text-ink-muted">dias de espera mediana<template v-if="!compacto"> (máximo {{ dados.resumo.espera_maxima }})</template></dt>
           </div>
         </dl>
 
@@ -132,7 +130,7 @@
               {{ c === 'ESPERA_LIMITE' ? `Espera > ${dados.regra.espera_limite_dias} dias` : ROTULO_CRITERIO[c] }}
             </span>
           </template>
-          <span v-if="!compacto" class="whitespace-nowrap">· regra {{ rotuloRegra }} v{{ dados.regra.versao }}<template v-if="dados.regra.exemplo"> (exemplo)</template></span>
+          <span v-if="!compacto" class="ml-2 whitespace-nowrap">Regra {{ rotuloRegra }}, versão {{ dados.regra.versao }}<template v-if="dados.regra.exemplo"> (exemplo)</template></span>
           <router-link to="/regras" class="whitespace-nowrap font-semibold text-acao underline underline-offset-2 hover:text-acao-hover">Editar regra</router-link>
         </div>
 
@@ -169,7 +167,7 @@
           role="status"
         >
           <span class="font-bold">Agenda sem vagas abertas para {{ exameCurto(nomeDoExame) }}.</span>
-          <span>A fila continua visível, mas não há data para oferecer (RN-05). O que fazer com novos pedidos ainda está em definição com a gestão (D3).</span>
+          <span>A fila continua visível, mas não há data para oferecer.</span>
         </div>
         <p v-if="dados && notaDaAba" class="border-b border-line bg-surface-sunken px-6 py-2 text-xs text-ink-muted">{{ notaDaAba }}</p>
         <div v-if="erro && dados" class="flex items-center gap-3 border-b border-line bg-separar-bg px-6 py-2 text-sm text-separar-ink" role="alert">
@@ -206,7 +204,7 @@
             <tr
               v-for="l in linhasTabela"
               :key="l.chave"
-              v-bind="l.g ? atributosLinha(l.g, l.idx) : { 'aria-hidden': 'true' }"
+              v-bind="l.g ? atributosLinha(l.g, l.idx) : {}"
               :ref="(el) => { if (l.g) registrarLinha(el, l.idx); }"
               :class="l.g
                 ? [selecionado?.chave === l.g.chave
@@ -218,8 +216,8 @@
               <td v-if="!l.g" :colspan="colunas" class="px-6 py-1.5">
                 <p class="flex flex-wrap items-center gap-x-2 text-xs font-bold text-acao">
                   <ScissorsIcon class="h-4 w-4 -rotate-90" aria-hidden="true" />
-                  Linha das {{ dados?.vagas?.vagas }} vagas abertas: chame os {{ dados?.vagas?.vagas }} pacientes acima.
-                  <span class="font-semibold text-ink-muted">Abaixo, aguardam a próxima abertura da agenda.</span>
+                  {{ dados?.vagas?.vagas }} vagas abertas acima desta linha
+                  <span class="font-semibold text-ink-muted">Os demais esperam a próxima abertura da agenda.</span>
                 </p>
               </td>
               <template v-else>
@@ -241,7 +239,7 @@
                   <p class="font-bold text-ink leading-snug break-words">{{ l.g.nome }}</p>
                   <p class="tabular text-xs text-ink-muted">
                     <template v-if="l.g.sem_prontuario">Sem prontuário no extrato</template>
-                    <template v-else>Pront. {{ l.g.prontuario }}</template>
+                    <template v-else>Prontuário {{ l.g.prontuario }}</template>
                   </p>
                 </td>
                 <td class="px-2 py-2.5">
@@ -255,7 +253,7 @@
                       <p class="leading-snug" :class="i.na_unidade ? 'font-semibold' : ''">{{ exameCurto(i.nome_exame) }}</p>
                       <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink-muted">
                         <span class="tabular">{{ dataCurta(i.data_solicitacao) }}</span>
-                        <span v-if="termoSolicitacao && i.codigo_solicitacao.includes(termoSolicitacao)" class="tabular rounded bg-espera-bg px-1 font-bold text-espera-ink">Sol. {{ i.codigo_solicitacao }}</span>
+                        <span v-if="termoSolicitacao && i.codigo_solicitacao.includes(termoSolicitacao)" class="tabular rounded bg-espera-bg px-1 font-bold text-espera-ink">Solicitação {{ i.codigo_solicitacao }}</span>
                         <span v-if="(i.quantidade ?? 1) > 1" class="tabular">× {{ i.quantidade }}</span>
                         <span v-if="!i.na_unidade">{{ nomeUnidade(i.unidade) }}</span>
                         <StatusTag :status="i.status" :quando="i.status_info?.criado_em" :quem="i.status_info?.usuario" />
@@ -269,18 +267,18 @@
                 </td>
                 <td class="px-2 py-2.5" :class="compacto ? 'pr-6' : ''">
                   <div class="flex flex-col items-start gap-1">
-                    <MotivoChip :motivo="l.g.motivo" />
+                    <MotivoChip v-if="aba === 'a_chamar' || l.g.motivo.tipo === 'LISTA'" :motivo="l.g.motivo" />
                     <p
                       v-if="l.g.aba === 'em_contato' && l.g.contato"
                       :class="l.g.contato.prazo_vencido ? 'text-separar-ink' : 'text-ink-muted'"
                       class="text-xs font-semibold leading-snug"
                     >
-                      <template v-if="l.g.contato.prazo_vencido">Sem resposta há {{ l.g.contato.horas }}h: ofereça a vaga ao próximo</template>
-                      <template v-else>Aguardando resposta há {{ l.g.contato.horas }}h · faltam {{ prazoRestante(l.g.contato.horas) }}h</template>
-                      <span class="block font-normal text-ink-muted">por {{ l.g.contato.usuario }}</span>
+                      <template v-if="l.g.contato.prazo_vencido">Sem resposta há {{ l.g.contato.horas }}h. Ofereça a vaga ao próximo.</template>
+                      <template v-else>Aguardando há {{ l.g.contato.horas }}h, faltam {{ prazoRestante(l.g.contato.horas) }}h</template>
+                      <span class="block font-normal text-ink-muted">{{ l.g.contato.exemplo ? 'Registro de exemplo' : `Contato feito por ${l.g.contato.usuario}` }}</span>
                     </p>
                     <p v-else-if="l.g.aba === 'sem_contato'" class="text-xs font-semibold text-ink-muted">
-                      {{ l.g.tentativas }} {{ l.g.tentativas === 1 ? 'tentativa' : 'tentativas' }}<template v-if="l.g.contato"> · última {{ horaCurta(l.g.contato.criado_em) }}</template>
+                      {{ l.g.tentativas }} {{ l.g.tentativas === 1 ? 'tentativa' : 'tentativas' }}<template v-if="l.g.contato">, a última {{ quandoCurto(l.g.contato.criado_em) }}</template>
                     </p>
                     <template v-if="compacto">
                       <AlertaCombinacao v-for="a in alertasDaLinha(l.g)" :key="a.alerta.tipo + a.alerta.exames.join()" :alerta="a.alerta" :rotulo="a.rotulo" />
@@ -298,7 +296,7 @@
         </table>
 
         <div v-if="dados && !gruposFiltrados.length && busca.trim()" class="px-6 py-12 text-center">
-          <p class="font-bold text-ink">Nenhum paciente encontrado para “{{ busca }}” em {{ ROTULO_ABA[aba] }}{{ unidade ? ` · ${nomeUnidade(unidade)}` : '' }}.</p>
+          <p class="font-bold text-ink">Nenhum paciente encontrado para “{{ busca }}” em {{ ROTULO_ABA[aba] }}{{ unidade ? `, ${nomeUnidade(unidade)}` : '' }}.</p>
           <p class="mt-1 text-sm text-ink-muted">Busque pelo nome como aparece no AGHU, pelo prontuário ou pelo número da solicitação. A busca vale para a aba aberta.</p>
           <div class="mt-3 flex justify-center gap-4 text-sm font-semibold">
             <button v-if="unidade" type="button" @click="trocarUnidade(null)" class="text-acao underline underline-offset-2">Buscar em todas as unidades</button>
@@ -367,6 +365,7 @@ import {
   hojeIso,
   horaCurta,
   nomeUnidade,
+  quandoCurto,
   type Aba,
   type Alerta,
   type GrupoFila,
@@ -500,16 +499,17 @@ const semVagas = computed(() => !!exame.value && dados.value?.vagas?.vagas === 0
 
 const rotuloRegra = computed(() => {
   if (!dados.value) return '';
-  return dados.value.regra_do_exame ? `própria de ${exameCurto(nomeDoExame.value)}` : nomeUnidade(dados.value.regra.unidade);
+  if (dados.value.regra_do_exame) return `própria de ${exameCurto(nomeDoExame.value)}`;
+  return dados.value.regra.unidade === '*' ? 'geral' : `de ${nomeUnidade(dados.value.regra.unidade)}`;
 });
 
 const notaDaAba = computed(() => {
   const prazo = dados.value?.prazo_resposta_horas ?? 24;
   return {
     a_chamar: '',
-    em_contato: `O paciente tem ${prazo} horas para confirmar a data oferecida. Sem resposta, a vaga vai para o próximo da fila (combinado com a Central em 06/11). Os registros marcados como exemplo são de demonstração.`,
+    em_contato: `O paciente tem ${prazo} horas para confirmar a data oferecida. Sem resposta, a vaga vai para o próximo da fila.`,
     sem_contato: 'Telefone não atende ou número inválido. Tente de novo ou registre o cancelamento com o motivo.',
-    finalizados: 'Agendamentos e cancelamentos registrados hoje. Para corrigir um engano, abra o paciente e use “Desfazer este registro”; o histórico guarda os dois.',
+    finalizados: 'Agendamentos e cancelamentos registrados hoje. Para corrigir um engano, abra o paciente e use “Desfazer este registro”.',
   }[aba.value];
 });
 
@@ -736,7 +736,7 @@ async function salvarVagas() {
   const texto = String(vagasEdicao.value ?? '').trim();
   const vagas = texto === '' ? null : Number(texto);
   if (vagas !== null && (!Number.isInteger(vagas) || vagas < 0)) {
-    toast.error('Informe um número inteiro de vagas, ou deixe vazio.');
+    toast.error('Informe um número inteiro de vagas ou deixe o campo vazio.');
     return;
   }
   try {

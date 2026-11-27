@@ -103,7 +103,7 @@ def _chave_ordenacao(item, regra, prioritario) -> Tuple[tuple, Dict[str, Any]]:
             if atende and motivo is None:
                 motivo = {
                     "tipo": "LISTA",
-                    "rotulo": f"Lista · {prioritario['area']}",
+                    "rotulo": f"Lista da {prioritario['area']}",
                     "detalhe": prioritario["motivo"] + (" (lista de exemplo)" if prioritario.get("exemplo") else ""),
                 }
         elif criterio == "ESPERA_LIMITE":

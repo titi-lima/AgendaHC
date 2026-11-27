@@ -41,5 +41,5 @@ class SolicitacaoCsvProvider(SolicitacaoProviderInterface):
     def descricao_fonte(self) -> str:
         atualizado = datetime.fromtimestamp(os.path.getmtime(self.csv_path))
         if "sintetic" in os.path.basename(self.csv_path):
-            return f"Dados sintéticos no formato do extrato do AGHU (CSV) · arquivo de {atualizado:%d/%m/%Y}"
-        return f"Extrato anonimizado do AGHU (CSV) · arquivo de {atualizado:%d/%m/%Y}"
+            return f"Dados sintéticos no formato do AGHU, arquivo de {atualizado:%d/%m/%Y}"
+        return f"Extrato do AGHU de {atualizado:%d/%m/%Y}"
