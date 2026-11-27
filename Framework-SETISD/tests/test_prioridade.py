@@ -82,3 +82,17 @@ def test_api_fila_retorna_grupos(client):
     corpo = resposta.json()
     assert corpo["resumo"]["pacientes"] == len(corpo["grupos"])
     assert all(g["motivo"]["rotulo"] for g in corpo["grupos"])
+
+
+def test_espera_igual_ao_limite_nao_conta_como_acima():
+    itens = [item("1", "10", "2026-09-07"), item("2", "20", "2026-09-06")]
+    r = ranquear_fila(itens, {}, [], REGRAS, [], HOJE)
+    motivos = {g["prontuario"]: g["motivo"]["tipo"] for g in r["grupos"]}
+    assert motivos == {"1": "CHEGADA", "2": "ESPERA"}
+
+
+def test_itens_repetidos_viram_um_com_quantidade():
+    itens = [item("1", "10", "2026-09-01"), item("1", "10", "2026-09-01")]
+    r = ranquear_fila(itens, {}, [], REGRAS, [], HOJE)
+    assert len(r["grupos"][0]["itens"]) == 1
+    assert r["grupos"][0]["itens"][0]["quantidade"] == 2

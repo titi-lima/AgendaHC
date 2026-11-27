@@ -62,6 +62,10 @@ with sync_playwright() as p:
     pagina.get_by_role("button", name="Registrar", exact=True).click()
     pagina.wait_for_timeout(1500)
     captura(pagina, "05-apos-registro")
+    pagina.get_by_role("button", name="Desfazer").click()
+    pagina.wait_for_selector("text=Registro desfeito")
+    print("desfazer registro ok:", pagina.get_by_text("Registro desfeito").first.inner_text())
+    pagina.wait_for_timeout(600)
 
     pagina.goto(f"{BASE}/painel")
     pagina.wait_for_selector("text=Demanda por unidade")

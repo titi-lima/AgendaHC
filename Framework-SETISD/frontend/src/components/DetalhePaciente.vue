@@ -3,7 +3,7 @@
     <div class="sticky top-0 z-10 bg-surface border-b border-line px-5 pt-4 pb-3">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
-          <h2 id="detalhe-titulo" tabindex="-1" class="text-lg font-extrabold text-ink leading-snug rounded focus-visible:outline-2 focus-visible:outline-acao">{{ paciente?.nome ?? '…' }}</h2>
+          <h2 id="detalhe-titulo" tabindex="-1" class="text-lg font-extrabold text-ink leading-snug text-balance rounded focus-visible:outline-2 focus-visible:outline-acao">{{ paciente?.nome ?? '…' }}</h2>
           <p class="tabular flex items-center gap-1 text-xs text-ink-muted">
             <template v-if="paciente?.prontuario">
               Prontuário {{ paciente.prontuario }}
@@ -58,7 +58,7 @@
             <div>
               <div class="flex items-start justify-between gap-2">
                 <p :id="`exame-${chaveDom(i)}`" tabindex="-1" class="font-bold text-ink text-sm leading-snug rounded focus-visible:outline-2 focus-visible:outline-acao">{{ exameCurto(i.nome_exame) }}</p>
-                <StatusTag :status="i.status" :quando="i.status_info?.criado_em" />
+                <StatusTag :status="i.status" :quando="i.status_info?.criado_em" :quem="i.status_info?.usuario" />
               </div>
               <p class="tabular mt-0.5 flex flex-wrap items-center gap-x-1 text-xs text-ink-muted">
                 <span>{{ nomeUnidade(i.unidade) }} ·</span>
@@ -72,6 +72,9 @@
                   <component :is="copiado === chaveItem(i) ? CheckIcon : ClipboardDocumentIcon" class="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
                 <span>· {{ dataCompleta(i.data_solicitacao) }} · {{ i.espera_dias }} dias</span>
+              </p>
+              <p v-if="(i.quantidade ?? 1) > 1" class="mt-1 text-xs text-ink-muted">
+                Aparece {{ i.quantidade }} vezes na mesma solicitação do AGHU; o resultado vale para todas.
               </p>
               <p v-if="i.status_info?.data_agendada" class="mt-1 text-xs font-semibold text-ok-ink">
                 Agendado para {{ dataCompleta(i.status_info.data_agendada) }}
@@ -109,8 +112,11 @@
                 <input v-model="form.data" type="date" required class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink" />
               </label>
               <label class="block">
-                <span class="text-xs font-bold text-ink">Observação <span class="font-normal text-ink-muted">(opcional)</span></span>
-                <textarea v-model="form.observacao" rows="2" class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink" placeholder="Ex.: paciente pediu horário pela manhã"></textarea>
+                <span class="text-xs font-bold text-ink">
+                  <template v-if="form.status === 'CANCELADO'">Motivo do cancelamento</template>
+                  <template v-else>Observação <span class="font-normal text-ink-muted">(opcional)</span></template>
+                </span>
+                <textarea v-model="form.observacao" :required="form.status === 'CANCELADO'" rows="2" class="mt-1 block w-full rounded-md border border-campo bg-surface px-2.5 py-1.5 text-sm text-ink" placeholder="Ex.: paciente pediu horário pela manhã"></textarea>
               </label>
               <p v-if="erroForm" class="text-xs font-semibold text-separar-ink" role="alert">{{ erroForm }}</p>
               <div class="flex items-center gap-2">
@@ -197,10 +203,20 @@
         <ol v-if="paciente.historico.length" class="space-y-2 text-sm">
           <li v-for="(h, n) in paciente.historico" :key="n" class="flex gap-2">
             <span class="tabular text-xs text-ink-muted w-24 shrink-0 pt-0.5">{{ dataHora(h.criado_em) }}</span>
-            <span class="text-ink"><strong class="font-bold">{{ ROTULO_STATUS[h.status as StatusItem] }}</strong> · {{ exameDoCodigo(h.codigo_exame) }} · {{ h.usuario }}</span>
+            <span v-if="h.tipo === 'PRIORIDADE'" class="text-ink">
+              <strong class="font-bold">Lista de prioridade · {{ h.area }}</strong>
+              <template v-if="h.exemplo"> · exemplo</template>
+              <template v-else-if="!h.ativo"> · desfeito ou removido</template>
+              · {{ h.usuario }}
+            </span>
+            <span v-else class="text-ink">
+              <strong class="font-bold">{{ h.status === 'PENDENTE' ? 'Reaberto' : ROTULO_STATUS[h.status as StatusItem] }}</strong>
+              · {{ exameDoCodigo(h.codigo_exame ?? '') }} · {{ h.usuario }}
+              <span v-if="h.observacao" class="block text-xs text-ink-muted">“{{ h.observacao }}”</span>
+            </span>
           </li>
         </ol>
-        <p v-else class="text-sm text-ink-muted">Nenhum registro ainda. Cada resultado registrado aparece aqui, com quem registrou e quando.</p>
+        <p v-else class="text-sm text-ink-muted text-pretty">Nenhum registro ainda. Cada resultado registrado aparece aqui, com quem registrou e quando.</p>
       </section>
     </div>
   </div>
@@ -226,14 +242,30 @@ interface DetalheResposta {
   itens: ItemFila[];
   prioridades: Prioridade[];
   alertas: Alerta[];
-  historico: { codigo_solicitacao: string; codigo_exame: string; status: string; usuario: string; criado_em: string }[];
+  historico: {
+    tipo: 'TRATAMENTO' | 'PRIORIDADE';
+    codigo_solicitacao?: string;
+    codigo_exame?: string;
+    status?: string;
+    observacao?: string | null;
+    area?: string;
+    ativo?: boolean;
+    exemplo?: boolean;
+    usuario: string;
+    criado_em: string;
+  }[];
   dados_ausentes: string[];
 }
 
 const props = defineProps<{ chave: string; posicao: number; motivo: Motivo; unidade: string | null }>();
 const emit = defineEmits<{
   (e: 'fechar'): void;
-  (e: 'alterado', evento: { tipo: 'prioridade' | 'tratamento'; mensagem: string; desfazerPrioridadeId?: number }): void;
+  (e: 'alterado', evento: {
+    tipo: 'prioridade' | 'tratamento';
+    mensagem: string;
+    desfazerPrioridadeId?: number;
+    desfazerTratamento?: { codigo_solicitacao: string; codigo_exame: string; rotulo: string };
+  }): void;
 }>();
 
 const paciente = ref<DetalheResposta | null>(null);
@@ -330,6 +362,10 @@ async function registrar(i: ItemFila) {
     erroForm.value = 'Informe a data marcada no AGHU.';
     return;
   }
+  if (form.status === 'CANCELADO' && !form.observacao.trim()) {
+    erroForm.value = 'Informe o motivo do cancelamento.';
+    return;
+  }
   salvando.value = true;
   erroForm.value = '';
   try {
@@ -342,7 +378,14 @@ async function registrar(i: ItemFila) {
     });
     aberto.value = null;
     await carregar();
-    emit('alterado', { tipo: 'tratamento', mensagem: `${exameCurto(i.nome_exame)}: ${ROTULO_STATUS[form.status as StatusItem]}.` });
+    const rotulo = ROTULO_STATUS[form.status as StatusItem];
+    emit('alterado', {
+      tipo: 'tratamento',
+      mensagem: `${exameCurto(i.nome_exame)}: ${rotulo}.`,
+      desfazerTratamento: finalizado(form.status as StatusItem)
+        ? { codigo_solicitacao: i.codigo_solicitacao, codigo_exame: i.codigo_exame, rotulo }
+        : undefined,
+    });
     await nextTick();
     document.getElementById(`exame-${chaveDom(i)}`)?.focus();
   } catch (e: any) {

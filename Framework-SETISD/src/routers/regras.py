@@ -140,6 +140,6 @@ async def obter_painel(
     hoje = date.today()
     itens = await provider.listar_itens_solicitados()
     ctx = await fila.carregar_contexto(db, hoje)
-    painel = fila.montar_painel(itens, ctx["status_atual"], await fila.contagem_status(db), hoje)
+    painel = fila.montar_painel(itens, ctx["status_atual"], ctx["regras"], hoje)
     painel["fonte"] = provider.descricao_fonte()
     return painel

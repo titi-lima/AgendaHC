@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date, datetime
 from statistics import median
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -62,10 +62,10 @@ def _chave_ordenacao(item, regra, prioritario) -> Tuple[tuple, Dict[str, Any]]:
                 motivo = {
                     "tipo": "LISTA",
                     "rotulo": f"Lista · {prioritario['area']}",
-                    "detalhe": prioritario["motivo"],
+                    "detalhe": prioritario["motivo"] + (" (lista de exemplo)" if prioritario.get("exemplo") else ""),
                 }
         elif criterio == "ESPERA_LIMITE":
-            atende = item["espera_dias"] >= regra["espera_limite_dias"]
+            atende = item["espera_dias"] > regra["espera_limite_dias"]
             valores.append(0 if atende else 1)
             if atende and motivo is None:
                 motivo = {
@@ -99,6 +99,17 @@ def detectar_combinacoes(nomes_exames: Iterable[str], combinacoes: Iterable[Dict
     return alertas
 
 
+def agrupar_repetidos(itens: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    unicos: Dict[Chave, Dict[str, Any]] = {}
+    for item in itens:
+        chave = chave_item(item)
+        if chave in unicos:
+            unicos[chave]["quantidade"] += 1
+        else:
+            unicos[chave] = {**item, "quantidade": 1}
+    return list(unicos.values())
+
+
 def ranquear_fila(
     itens: List[Dict[str, Any]],
     status_atual: Dict[Chave, Dict[str, Any]],
@@ -110,7 +121,7 @@ def ranquear_fila(
 ) -> Dict[str, Any]:
     regra = regra_da_unidade(regras, unidade)
     pendentes_por_paciente: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-    for bruto in itens:
+    for bruto in agrupar_repetidos(itens):
         st = status_atual.get(chave_item(bruto))
         if st and st["status"] in STATUS_QUE_SAEM_DA_FILA:
             continue
@@ -171,7 +182,7 @@ def ranquear_fila(
 
 def resumo_unidades(itens, status_atual) -> List[Dict[str, Any]]:
     contagem: Dict[str, Dict[str, Any]] = {}
-    for item in itens:
+    for item in agrupar_repetidos(itens):
         st = status_atual.get(chave_item(item))
         if st and st["status"] in STATUS_QUE_SAEM_DA_FILA:
             continue
@@ -184,9 +195,9 @@ def resumo_unidades(itens, status_atual) -> List[Dict[str, Any]]:
     )
 
 
-def montar_painel(itens, status_atual, historico_status, hoje: date) -> Dict[str, Any]:
+def montar_painel(itens, status_atual, regras, hoje: date) -> Dict[str, Any]:
     por_unidade: Dict[str, Dict[str, Any]] = {}
-    for item in itens:
+    for item in agrupar_repetidos(itens):
         u = por_unidade.setdefault(item["unidade"], {
             "unidade": item["unidade"], "pendentes": 0, "esperas": [], "faixas": [0, 0, 0, 0], "tratados": 0,
             "exames": defaultdict(int),
@@ -207,7 +218,8 @@ def montar_painel(itens, status_atual, historico_status, hoje: date) -> Dict[str
         exames = u.pop("exames")
         u["espera_mediana"] = int(median(esperas)) if esperas else 0
         u["espera_maxima"] = max(esperas) if esperas else 0
-        u["acima_60"] = sum(1 for e in esperas if e > 60)
+        u["limite"] = regra_da_unidade(regras, u["unidade"])["espera_limite_dias"]
+        u["acima_limite"] = sum(1 for e in esperas if e > u["limite"])
         u["principais_exames"] = sorted(
             ({"exame": k, "pendentes": v} for k, v in exames.items()), key=lambda e: -e["pendentes"]
         )[:3]
@@ -218,10 +230,10 @@ def montar_painel(itens, status_atual, historico_status, hoje: date) -> Dict[str
         "totais": {
             "pendentes": sum(u["pendentes"] for u in unidades),
             "tratados": sum(u["tratados"] for u in unidades),
-            "acima_60": sum(u["acima_60"] for u in unidades),
+            "acima_limite": sum(u["acima_limite"] for u in unidades),
             "faixas": [sum(u["faixas"][i] for u in unidades) for i in range(4)],
         },
-        "status": historico_status,
+        "status": dict(Counter(s["status"] for s in status_atual.values() if s["status"] != "PENDENTE")),
     }
 
 
@@ -272,26 +284,27 @@ async def carregar_contexto(session: AsyncSession, hoje: date) -> Dict[str, Any]
 
 
 async def historico_do_paciente(session: AsyncSession, prontuario: str) -> List[Dict[str, Any]]:
-    linhas = (await session.execute(
-        select(TratamentoSolicitacao)
-        .where(TratamentoSolicitacao.prontuario == prontuario)
-        .order_by(TratamentoSolicitacao.criado_em.desc(), TratamentoSolicitacao.id.desc())
+    tratamentos = (await session.execute(
+        select(TratamentoSolicitacao).where(TratamentoSolicitacao.prontuario == prontuario)
     )).scalars().all()
-    return [
+    inclusoes = (await session.execute(
+        select(PacientePrioritario).where(PacientePrioritario.prontuario == prontuario)
+    )).scalars().all()
+    eventos = [
         {
-            "codigo_solicitacao": t.codigo_solicitacao, "codigo_exame": t.codigo_exame, "status": t.status,
-            "data_agendada": t.data_agendada.isoformat() if t.data_agendada else None,
+            "tipo": "TRATAMENTO", "codigo_solicitacao": t.codigo_solicitacao, "codigo_exame": t.codigo_exame,
+            "status": t.status, "data_agendada": t.data_agendada.isoformat() if t.data_agendada else None,
             "observacao": t.observacao, "usuario": t.usuario, "criado_em": t.criado_em.isoformat(),
         }
-        for t in linhas
+        for t in tratamentos
+    ] + [
+        {
+            "tipo": "PRIORIDADE", "area": p.area, "motivo": p.motivo, "ativo": p.ativo, "exemplo": p.exemplo,
+            "usuario": p.criado_por, "criado_em": p.criado_em.isoformat(),
+        }
+        for p in inclusoes
     ]
-
-
-async def contagem_status(session: AsyncSession) -> Dict[str, int]:
-    rows = (await session.execute(
-        select(TratamentoSolicitacao.status, func.count()).group_by(TratamentoSolicitacao.status)
-    )).all()
-    return {status: total for status, total in rows}
+    return sorted(eventos, key=lambda e: e["criado_em"], reverse=True)
 
 
 COMBINACOES_EXEMPLO = [

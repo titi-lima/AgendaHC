@@ -2,7 +2,13 @@
   <div class="px-6 py-5 max-w-[1280px] space-y-6">
     <p v-if="dados" class="text-xs text-ink-muted">{{ dados.fonte }} · indicadores calculados na leitura</p>
 
-    <div v-if="carregando && !dados" class="space-y-3">
+    <div v-if="erro && !dados" class="rounded-md border border-separar-bg bg-surface p-4 text-sm" role="alert">
+      <p class="font-bold text-separar-ink">Não foi possível carregar o painel.</p>
+      <p class="mt-1 text-ink-muted">{{ erro }}</p>
+      <button type="button" @click="carregar()" class="mt-3 rounded-md bg-acao px-3 py-1.5 text-sm font-bold text-white hover:bg-acao-hover">Tentar de novo</button>
+    </div>
+
+    <div v-else-if="carregando && !dados" class="space-y-3">
       <div v-for="n in 5" :key="n" class="h-12 rounded bg-line/70 animate-pulse"></div>
     </div>
 
@@ -15,10 +21,10 @@
             <dd class="tabular text-3xl font-extrabold text-ink">{{ dados.totais.pendentes }}</dd>
           </div>
           <div>
-            <dt class="text-xs font-bold text-ink-muted">Esperando há mais de 60 dias</dt>
+            <dt class="text-xs font-bold text-ink-muted">Acima do limite de espera da unidade</dt>
             <dd class="tabular text-3xl font-extrabold text-espera-ink">
-              {{ dados.totais.acima_60 }}
-              <span class="text-base font-bold text-ink-muted">({{ pct(dados.totais.acima_60, dados.totais.pendentes) }})</span>
+              {{ dados.totais.acima_limite }}
+              <span class="text-base font-bold text-ink-muted">({{ pct(dados.totais.acima_limite, dados.totais.pendentes) }})</span>
             </dd>
           </div>
           <div>
@@ -51,7 +57,7 @@
               <th scope="col" class="px-2 py-2 text-right">Pendentes</th>
               <th scope="col" class="px-2 py-2 text-right">Espera mediana</th>
               <th scope="col" class="px-2 py-2 text-right">Máxima</th>
-              <th scope="col" class="px-2 py-2 text-right">&gt; 60 dias</th>
+              <th scope="col" class="px-2 py-2 text-right">Acima do limite</th>
               <th scope="col" class="px-3 py-2 w-[22%]">Distribuição da espera</th>
               <th scope="col" class="pl-2 pr-5 py-2">Exames com mais pedidos</th>
             </tr>
@@ -69,7 +75,9 @@
               <td class="tabular px-2 py-3 text-right font-bold text-ink">{{ u.pendentes }}</td>
               <td class="tabular px-2 py-3 text-right text-ink">{{ u.espera_mediana }} d</td>
               <td class="tabular px-2 py-3 text-right text-ink">{{ u.espera_maxima }} d</td>
-              <td class="tabular px-2 py-3 text-right" :class="u.acima_60 ? 'font-bold text-espera-ink' : 'text-ink-muted'">{{ u.acima_60 }}</td>
+              <td class="tabular px-2 py-3 text-right" :class="u.acima_limite ? 'font-bold text-espera-ink' : 'text-ink-muted'">
+                {{ u.acima_limite }} <span class="text-xs font-normal text-ink-muted">&gt; {{ u.limite }} d</span>
+              </td>
               <td class="px-3 py-3.5"><BarraFaixas :faixas="u.faixas" /></td>
               <td class="pl-2 pr-5 py-3 text-xs text-ink-muted">
                 <span v-for="(e, n) in u.principais_exames" :key="e.exame">
@@ -81,7 +89,7 @@
         </table>
       </section>
 
-      <p class="text-xs text-ink-muted max-w-3xl">
+      <p class="text-xs text-ink-muted max-w-prose text-pretty">
         A espera é contada da data da solicitação até hoje. Clique numa unidade para abrir a fila dela.
         Indicadores que dependem de dados ainda ausentes no extrato do AGHU (agendados após a data de retorno,
         antecedência por município) aparecem aqui quando a TI incluir os campos.
@@ -98,27 +106,33 @@ import { ROTULO_STATUS, exameCurto, nomeUnidade, type StatusItem } from '../lib/
 
 interface Painel {
   fonte: string;
-  totais: { pendentes: number; tratados: number; acima_60: number; faixas: number[] };
+  totais: { pendentes: number; tratados: number; acima_limite: number; faixas: number[] };
   status: Record<string, number>;
   unidades: {
     unidade: string; pendentes: number; tratados: number; espera_mediana: number; espera_maxima: number;
-    acima_60: number; faixas: number[]; principais_exames: { exame: string; pendentes: number }[];
+    acima_limite: number; limite: number; faixas: number[]; principais_exames: { exame: string; pendentes: number }[];
   }[];
 }
 
 const dados = ref<Painel | null>(null);
 const carregando = ref(false);
+const erro = ref('');
 
 function pct(parte: number, total: number) {
   return total ? `${Math.round((parte / total) * 100)}%` : '0%';
 }
 
-onMounted(async () => {
+async function carregar() {
   carregando.value = true;
+  erro.value = '';
   try {
     dados.value = (await api.get<Painel>('/api/painel')).data;
+  } catch (e: any) {
+    erro.value = e?.response?.data?.detail ?? 'Verifique a conexão com o servidor e tente de novo.';
   } finally {
     carregando.value = false;
   }
-});
+}
+
+onMounted(carregar);
 </script>

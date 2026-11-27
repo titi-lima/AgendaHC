@@ -30,8 +30,8 @@ colors:
   line-strong: "#d3cfc5"
   campo: "#8c877f"
   paper-disabled: "#e0e0e0"
-  faixa-30: "#c9d9d9"
-  faixa-60: "#e9c46f"
+  faixa-30: "#9fbfc0"
+  faixa-60: "#5f8f90"
   faixa-90: "#d98a2b"
   faixa-90-mais: "#7a5100"
 typography:
@@ -154,7 +154,7 @@ components:
     textColor: "{colors.ink}"
   painel-detalhe:
     backgroundColor: "{colors.surface}"
-    width: "400px"
+    width: "352px (400px at 2xl)"
     padding: "16px 20px"
   sidebar:
     backgroundColor: "{colors.paper-sidebar}"
@@ -240,7 +240,7 @@ Each pair is used as dark text and icon on a light tint of the same hue. Every p
 
 The shell is a full-height flex layout. The sidebar is 224px, collapses to 72px icons, and becomes an off-canvas drawer below md. Next to it are a 56px white top bar with the page title and the profile control, then a scrolling main area on paper.
 
-The queue has three columns. On the left is a 240px unit rail (lg and up; below that it becomes a select). The center is the table section. On the right, a 400px detail panel opens only when a row is selected. While the panel is open the queue goes compact: the Combinação column folds into the Motivo cell, summary gaps tighten, and the rail is hidden.
+The queue has three columns. On the left is a 240px unit rail (lg and up; below that it becomes a select). The center is the table section. On the right, a 352px (400px from 2xl) px detail panel opens only when a row is selected. While the panel is open the queue goes compact: the Combinação column folds into the Motivo cell, the summary collapses to one 12px line, the ordering line stops wrapping, and the rail is hidden. Each exam's name sits on its own line, with date, repeat count, unit and status on a second line.
 
 The page gutter is 24px. Panel padding is 20px. Table cells are 8px wide by 10px tall in the queue and 12px tall in Painel. Vertical stacks use 4 to 12px gaps. Painel and Regras cap their content at 1280px. The queue table is fixed-layout with set widths for position, patient, wait, reason and combination, and the exams column takes the remaining space. Long lists render 60 patients, then offer "Mostrar mais 60".
 
@@ -250,7 +250,7 @@ The page gutter is 24px. Panel padding is 20px. Table cells are 8px wide by 10px
 
 The system is flat and tonal. Depth comes from paper versus white surfaces, 1px line borders and 1px rings. The queue's sticky header uses paper at 95% with a small backdrop blur. Only two shadows exist:
 - **Rail lift** (`0 1px 2px rgba(43,41,37,0.08)` with a 1px line ring): the active unit in the rail.
-- **Toast** (`0 6px 20px -6px rgba(43,41,37,0.35)`): top-center toasts, ink background for success and info, with an inline "Desfazer" action after a priority inclusion, vermilion for error, 8px radius, 14px/600 text.
+- **Toast** (`0 6px 20px -6px rgba(43,41,37,0.35)`): bottom-right toasts, ink background for success and info, with an inline "Desfazer" action after a priority inclusion or a final result (Agendado, Cancelado), vermilion for error, 8px radius, 14px/600 text.
 
 The framework's `shadow-paper` (on its Card component) survives only on the inherited Login and Configurações screens. The Fila, Painel and Regras screens don't use it.
 
@@ -278,7 +278,7 @@ Small 4px-radius tags (1px × 6px, 12px/700) with a 12–14px icon. StatusTag st
 Surface white, sunken on hover, acao-suave when selected. A moved row is washed in lista-bg at 45% and keeps a "subiu N" tag (arrow up plus the count) next to its position. The tag stays until the next reload of the queue. The position is shown in 16px/800 tabular figures. The patient cell shows the name with the prontuário below it. Exams stack one per line with a short date, plus the unit when it differs from the current one.
 
 ### Re-rank motion
-Rows are keyed by patient and slide to their new index over 480ms with `cubic-bezier(0.16, 1, 0.3, 1)`. Entering rows fade in over 200ms and leaving rows fade out over 160ms. After a priority change, rows that moved up get the "subiu N" mark, a toast reports "Subiu de Xº para Yº", and the row scrolls into view. Positions are kept in sessionStorage so a re-rank made on another screen still animates when the queue opens. The detail panel enters with 180ms opacity and a 12px slide. Under `prefers-reduced-motion: reduce` the row slide and the panel transition are removed. The row opacity fades, skeleton pulse and refresh spinner still run.
+Rows are keyed by patient and slide to their new index over 520ms with `cubic-bezier(0.16, 1, 0.3, 1)`. Entering rows fade in over 200ms and leaving rows fade out over 160ms. After a priority change, rows that moved up get the "subiu N" mark, a toast reports "Subiu de Xº para Yº", and the row scrolls into view. Positions are kept in sessionStorage so a re-rank made on another screen still animates when the queue opens. The detail panel enters with 180ms opacity and a 12px slide. Under `prefers-reduced-motion: reduce` the row slide, the row fades, the panel transition, the skeleton pulse and the refresh spinner are all removed.
 
 ### Inputs
 Surface, 1px campo border, 6px radius, 14px ink text with ink-muted placeholder at full strength. Search has a 16px leading icon and on focus gets an acao border with a 2px acao ring at 20%. Result choices are radio cards (1px line ring, 2px acao ring when checked or keyboard-focused).

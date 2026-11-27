@@ -11,5 +11,5 @@ const app = createApp(App);
 
 app.use(createPinia());
 app.use(router);
-app.use(Toast, { position: POSITION.TOP_CENTER, timeout: 5000, hideProgressBar: true, icon: true });
+app.use(Toast, { position: POSITION.BOTTOM_RIGHT, timeout: 5000, hideProgressBar: true, icon: true });
 app.mount('#app')

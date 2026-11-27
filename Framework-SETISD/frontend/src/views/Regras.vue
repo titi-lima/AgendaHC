@@ -1,6 +1,12 @@
 <template>
   <div class="px-6 py-5 max-w-[1280px] space-y-6">
-    <div v-if="carregando && !dados" class="space-y-3">
+    <div v-if="erro && !dados" class="rounded-md border border-separar-bg bg-surface p-4 text-sm" role="alert">
+      <p class="font-bold text-separar-ink">Não foi possível carregar as regras.</p>
+      <p class="mt-1 text-ink-muted">{{ erro }}</p>
+      <button type="button" @click="carregar()" class="mt-3 rounded-md bg-acao px-3 py-1.5 text-sm font-bold text-white hover:bg-acao-hover">Tentar de novo</button>
+    </div>
+
+    <div v-else-if="carregando && !dados" class="space-y-3">
       <div v-for="n in 5" :key="n" class="h-12 rounded bg-line/70 animate-pulse"></div>
     </div>
 
@@ -40,12 +46,12 @@
               <li v-for="(c, i) in edicao.criterios" :key="c" class="flex items-center gap-3 rounded-md bg-surface ring-1 ring-line px-3 py-2">
                 <span class="tabular w-5 text-sm font-extrabold text-ink">{{ i + 1 }}</span>
                 <span class="flex-1 text-sm font-semibold text-ink">
-                  {{ c === 'ESPERA_LIMITE' ? `Espera acima de ${edicao.espera_limite_dias} dias` : ROTULO_CRITERIO[c] }}
+                  {{ c === 'ESPERA_LIMITE' ? `Espera > ${edicao.espera_limite_dias} dias` : ROTULO_CRITERIO[c] }}
                 </span>
-                <button type="button" @click="mover(i, -1)" :disabled="i === 0" class="rounded p-1 text-ink-muted hover:bg-surface-sunken hover:text-ink disabled:opacity-30" :aria-label="`Subir ${ROTULO_CRITERIO[c]}`">
+                <button type="button" @click="mover(i, -1)" :disabled="i === 0" class="rounded p-1 text-ink-muted hover:bg-surface-sunken hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed" :aria-label="`Subir ${ROTULO_CRITERIO[c]}`">
                   <ChevronUpIcon class="h-4 w-4" />
                 </button>
-                <button type="button" @click="mover(i, 1)" :disabled="i === edicao.criterios.length - 1" class="rounded p-1 text-ink-muted hover:bg-surface-sunken hover:text-ink disabled:opacity-30" :aria-label="`Descer ${ROTULO_CRITERIO[c]}`">
+                <button type="button" @click="mover(i, 1)" :disabled="i === edicao.criterios.length - 1" class="rounded p-1 text-ink-muted hover:bg-surface-sunken hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed" :aria-label="`Descer ${ROTULO_CRITERIO[c]}`">
                   <ChevronDownIcon class="h-4 w-4" />
                 </button>
               </li>
@@ -171,6 +177,7 @@ const alterada = computed(() =>
     edicao.value.espera_limite_dias !== original.value.espera_limite_dias),
 );
 
+const erro = ref('');
 const confirmando = ref<number | null>(null);
 const removendo = ref(false);
 
@@ -197,10 +204,13 @@ function mover(i: number, delta: number) {
 
 async function carregar(manterUnidade?: string) {
   carregando.value = true;
+  erro.value = '';
   try {
     dados.value = (await api.get<RespostaRegras>('/api/regras')).data;
     const alvo = dados.value.regras.find((r) => r.unidade === manterUnidade) ?? dados.value.regras[0];
     if (alvo) escolher(alvo);
+  } catch (e: any) {
+    erro.value = e?.response?.data?.detail ?? 'Verifique a conexão com o servidor e tente de novo.';
   } finally {
     carregando.value = false;
   }

@@ -71,7 +71,9 @@ async def obter_paciente(
     db: AsyncSession = Depends(get_app_db_session),
 ):
     hoje = date.today()
-    itens = [i for i in await provider.listar_itens_solicitados() if fila.chave_paciente(i) == chave]
+    itens = fila.agrupar_repetidos(
+        [i for i in await provider.listar_itens_solicitados() if fila.chave_paciente(i) == chave]
+    )
     if not itens:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paciente não encontrado na fila")
     ctx = await fila.carregar_contexto(db, hoje)
@@ -111,6 +113,8 @@ async def registrar_tratamento(
         raise HTTPException(status_code=400, detail=f"Status inválido: {corpo.status}")
     if corpo.status == "AGENDADO" and not corpo.data_agendada:
         raise HTTPException(status_code=400, detail="Informe a data agendada no AGHU.")
+    if corpo.status == "CANCELADO" and not (corpo.observacao or "").strip():
+        raise HTTPException(status_code=400, detail="Informe o motivo do cancelamento.")
     item = next(
         (i for i in await provider.listar_itens_solicitados()
          if i["codigo_solicitacao"] == corpo.codigo_solicitacao and i["codigo_exame"] == corpo.codigo_exame),

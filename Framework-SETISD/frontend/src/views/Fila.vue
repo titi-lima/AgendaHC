@@ -26,7 +26,7 @@
 
     <section id="conteudo-fila" class="flex-1 min-w-0 flex flex-col">
       <div class="px-6 pt-4 pb-3 border-b border-line bg-paper-bg space-y-3">
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
           <label class="relative flex-1 min-w-[14rem] max-w-md">
             <span class="sr-only">Buscar paciente por nome ou prontuário</span>
             <MagnifyingGlassIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" aria-hidden="true" />
@@ -48,8 +48,13 @@
           >
             <option v-for="u in opcoesUnidade" :key="u.valor ?? 'todas'" :value="u.valor ?? ''">{{ u.rotulo }} ({{ u.exames }})</option>
           </select>
-          <div class="ml-auto flex items-center gap-2 text-xs text-ink-muted">
-            <span v-if="dados">{{ dados.fonte }} · lido {{ horaLeitura }}</span>
+          <p v-if="busca.trim() && dados" class="text-xs font-semibold text-ink-muted" aria-live="polite">
+            {{ gruposFiltrados.length }} {{ gruposFiltrados.length === 1 ? 'paciente encontrado' : 'pacientes encontrados' }}
+          </p>
+          <div class="ml-auto flex min-w-0 items-center gap-2 text-xs text-ink-muted">
+            <span v-if="dados" class="truncate" :title="`${dados.fonte} · lido ${horaLeitura}`">
+              <template v-if="!compacto">{{ dados.fonte }} · </template>lido {{ horaLeitura }}
+            </span>
             <button
               type="button"
               @click="carregar()"
@@ -62,26 +67,30 @@
           </div>
         </div>
 
-        <dl v-if="dados" class="grid grid-cols-2 xl:flex xl:flex-wrap items-baseline gap-x-8 gap-y-1 text-sm">
+        <dl
+          v-if="dados"
+          :class="compacto ? 'flex flex-nowrap gap-x-4 overflow-hidden whitespace-nowrap text-xs' : 'grid grid-cols-2 xl:flex xl:flex-wrap gap-x-8 gap-y-1 text-sm'"
+          class="items-baseline"
+        >
           <div class="flex items-baseline gap-1.5">
-            <dd class="tabular text-xl font-extrabold text-ink">{{ dados.resumo.pacientes }}</dd>
-            <dt class="text-ink-muted">pacientes · {{ dados.resumo.exames }} exames</dt>
+            <dd :class="compacto ? 'text-sm' : 'text-xl'" class="tabular font-extrabold text-ink">{{ dados.resumo.pacientes }}</dd>
+            <dt class="text-ink-muted">pacientes<template v-if="!compacto"> · {{ dados.resumo.exames }} exames</template></dt>
           </div>
           <div class="flex items-baseline gap-1.5">
-            <dd class="tabular text-xl font-extrabold text-lista-ink">{{ dados.resumo.prioritarios }}</dd>
-            <dt class="text-ink-muted">na lista de prioridade</dt>
+            <dd :class="compacto ? 'text-sm' : 'text-xl'" class="tabular font-extrabold text-lista-ink">{{ dados.resumo.prioritarios }}</dd>
+            <dt class="text-ink-muted">{{ compacto ? 'na lista' : 'na lista de prioridade' }}</dt>
           </div>
           <div class="flex items-baseline gap-1.5">
-            <dd class="tabular text-xl font-extrabold text-separar-ink">{{ dados.resumo.com_alerta }}</dd>
-            <dt class="text-ink-muted">com alerta de combinação</dt>
+            <dd :class="compacto ? 'text-sm' : 'text-xl'" class="tabular font-extrabold text-ink">{{ dados.resumo.com_alerta }}</dd>
+            <dt class="text-ink-muted">{{ compacto ? 'com alerta' : 'com alerta de combinação' }}</dt>
           </div>
           <div class="flex items-baseline gap-1.5">
-            <dd class="tabular text-xl font-extrabold" :class="dados.resumo.espera_mediana > dados.regra.espera_limite_dias ? 'text-espera-ink' : 'text-ink'">{{ dados.resumo.espera_mediana }}</dd>
-            <dt class="text-ink-muted">dias de espera mediana · máx. {{ dados.resumo.espera_maxima }}</dt>
+            <dd :class="[compacto ? 'text-sm' : 'text-xl', dados.resumo.espera_mediana > dados.regra.espera_limite_dias ? 'text-espera-ink' : 'text-ink']" class="tabular font-extrabold">{{ dados.resumo.espera_mediana }}</dd>
+            <dt class="text-ink-muted">dias de espera mediana<template v-if="!compacto"> · máx. {{ dados.resumo.espera_maxima }}</template></dt>
           </div>
         </dl>
 
-        <div v-if="dados" class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-ink-muted">
+        <div v-if="dados" :class="compacto ? 'flex-nowrap overflow-hidden whitespace-nowrap' : 'flex-wrap'" class="flex items-center gap-x-2 gap-y-1.5 text-xs text-ink-muted">
           <span class="font-bold text-ink">Ordenação</span>
           <template v-for="(c, i) in dados.regra.criterios" :key="c">
             <ChevronRightIcon v-if="i > 0" class="h-3.5 w-3.5" aria-hidden="true" />
@@ -89,7 +98,7 @@
               {{ c === 'ESPERA_LIMITE' ? `Espera > ${dados.regra.espera_limite_dias} dias` : ROTULO_CRITERIO[c] }}
             </span>
           </template>
-          <span class="whitespace-nowrap">· regra {{ nomeUnidade(dados.regra.unidade) }} v{{ dados.regra.versao }}<template v-if="dados.regra.exemplo"> (exemplo)</template></span>
+          <span v-if="!compacto" class="whitespace-nowrap">· regra {{ nomeUnidade(dados.regra.unidade) }} v{{ dados.regra.versao }}<template v-if="dados.regra.exemplo"> (exemplo)</template></span>
           <router-link to="/regras" class="whitespace-nowrap font-semibold text-acao underline underline-offset-2 hover:text-acao-hover">Editar regra</router-link>
         </div>
       </div>
@@ -133,13 +142,16 @@
               :ref="(el) => registrarLinha(el, idx)"
               :tabindex="idx === indiceFoco ? 0 : -1"
               :aria-current="selecionado?.chave === g.chave ? 'true' : undefined"
+              :aria-expanded="selecionado?.chave === g.chave"
+              aria-controls="detalhe-paciente"
+              :aria-label="`${g.posicao}º, ${g.nome}, ${g.motivo.rotulo}`"
               @focus="indiceFoco = idx"
               @click="selecionar(g, idx)"
               @keydown="teclaNaLinha($event, g, idx)"
               :class="selecionado?.chave === g.chave
                 ? 'bg-acao-suave shadow-[inset_0_0_0_1px_var(--color-acao)]'
                 : movidos[g.chave] ? 'bg-lista-bg/50 hover:bg-lista-bg/70' : 'bg-surface hover:bg-surface-sunken'"
-              class="border-b border-line align-top cursor-pointer focus-visible:outline-2 focus-visible:outline-acao focus-visible:-outline-offset-2"
+              class="border-b border-line align-top cursor-pointer focus-visible:outline-2 focus-visible:outline-ink focus-visible:-outline-offset-2"
             >
               <td class="pl-6 pr-1 py-2.5">
                 <div class="flex flex-wrap items-center gap-1">
@@ -166,13 +178,16 @@
                   <li
                     v-for="i in g.itens"
                     :key="i.codigo_solicitacao + i.codigo_exame"
-                    class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0"
+                    class="min-w-0"
                     :class="i.na_unidade ? 'text-ink' : 'text-ink-muted'"
                   >
-                    <span class="leading-snug" :class="[i.na_unidade ? 'font-semibold' : '', compacto ? 'basis-full' : 'flex-1 min-w-0']">{{ exameCurto(i.nome_exame) }}</span>
-                    <span class="tabular text-xs text-ink-muted">{{ dataCurta(i.data_solicitacao) }}</span>
-                    <span v-if="!i.na_unidade" class="text-xs">· {{ nomeUnidade(i.unidade) }}</span>
-                    <StatusTag :status="i.status" :quando="i.status_info?.criado_em" />
+                    <p class="leading-snug" :class="i.na_unidade ? 'font-semibold' : ''">{{ exameCurto(i.nome_exame) }}</p>
+                    <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink-muted">
+                      <span class="tabular">{{ dataCurta(i.data_solicitacao) }}</span>
+                      <span v-if="(i.quantidade ?? 1) > 1" class="tabular">× {{ i.quantidade }}</span>
+                      <span v-if="!i.na_unidade">{{ nomeUnidade(i.unidade) }}</span>
+                      <StatusTag :status="i.status" :quando="i.status_info?.criado_em" :quem="i.status_info?.usuario" />
+                    </p>
                   </li>
                 </ul>
               </td>
@@ -216,7 +231,7 @@
         </div>
 
         <p id="ajuda-teclado" class="px-6 py-4 text-xs text-ink-muted">
-          Teclado: ↑ ↓ para percorrer, Enter abre o paciente, Esc fecha, Home e End vão ao início e ao fim, / busca.
+          Teclado: ↑ ↓ para percorrer, Enter abre o paciente, R registra o resultado do primeiro exame, Esc fecha, Home e End vão ao início e ao fim, / busca.
         </p>
       </div>
     </section>
@@ -224,11 +239,13 @@
     <Transition name="painel">
       <aside
         v-if="selecionado"
+        id="detalhe-paciente"
         class="w-[22rem] 2xl:w-[25rem] shrink-0 border-l border-line bg-surface overflow-y-auto"
         aria-label="Detalhe do paciente"
         @keydown.esc="fecharDetalhe"
       >
         <DetalhePaciente
+          :key="`${selecionado.chave}:${versaoDetalhe}`"
           :chave="selecionado.chave"
           :posicao="selecionado.posicao"
           :motivo="selecionado.motivo"
@@ -243,7 +260,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { MagnifyingGlassIcon, ArrowPathIcon, ArrowUpIcon, ChevronRightIcon } from '@heroicons/vue/20/solid';
 import api from '../services/api';
@@ -269,6 +286,7 @@ interface EventoAlteracao {
   tipo: 'prioridade' | 'tratamento';
   mensagem: string;
   desfazerPrioridadeId?: number;
+  desfazerTratamento?: { codigo_solicitacao: string; codigo_exame: string; rotulo: string };
 }
 
 const CORES_CRITERIO: Record<string, string> = {
@@ -278,6 +296,8 @@ const CORES_CRITERIO: Record<string, string> = {
 };
 
 const route = useRoute();
+const router = useRouter();
+const versaoDetalhe = ref(0);
 const toast = useToast();
 const dados = ref<RespostaFila | null>(null);
 const carregando = ref(false);
@@ -374,6 +394,12 @@ function atalhoGlobal(evento: KeyboardEvent) {
   if (evento.key === '/' && !digitando) {
     evento.preventDefault();
     campoBusca.value?.focus();
+  } else if ((evento.key === 'r' || evento.key === 'R') && !digitando && selecionado.value && !evento.metaKey && !evento.ctrlKey) {
+    const botao = document.querySelector<HTMLButtonElement>('#detalhe-paciente button[aria-label^="Registrar resultado"]');
+    if (botao) {
+      evento.preventDefault();
+      botao.click();
+    }
   }
 }
 
@@ -445,6 +471,7 @@ async function carregar(marcarMovimento = false) {
 function trocarUnidade(valor: string | null) {
   if (unidade.value === valor) return;
   unidade.value = valor;
+  router.replace({ query: valor ? { unidade: valor } : {} });
   selecionado.value = null;
   trocandoUnidade.value = true;
   indiceFoco.value = 0;
@@ -478,17 +505,50 @@ function rolarAteLinha(chave: string | undefined) {
   if (!visivel) area.scrollTo({ top: Math.max(0, topo), behavior: 'smooth' });
 }
 
+async function reabrirPainel(chave: string | undefined) {
+  const agora = dados.value?.grupos.find((g) => g.chave === chave);
+  if (agora) {
+    selecionado.value = { chave: agora.chave, posicao: agora.posicao, motivo: agora.motivo };
+    versaoDetalhe.value += 1;
+  }
+  await nextTick();
+  rolarAteLinha(chave);
+  document.getElementById('detalhe-titulo')?.focus();
+  return agora;
+}
+
 async function desfazerPrioridade(id: number, chave: string | undefined) {
   try {
     await api.delete(`/api/regras/prioritarios/${id}`);
     await carregar();
-    const agora = dados.value?.grupos.find((g) => g.chave === chave);
+    const agora = await reabrirPainel(chave);
     toast.info(agora ? `Inclusão desfeita. Voltou para ${agora.posicao}º.` : 'Inclusão desfeita.');
-    await nextTick();
-    rolarAteLinha(chave);
   } catch (e: any) {
     toast.error(e?.response?.data?.detail ?? 'Não foi possível desfazer. Remova em Regras de prioridade.');
   }
+}
+
+async function desfazerTratamento(alvo: NonNullable<EventoAlteracao['desfazerTratamento']>, chave: string | undefined) {
+  try {
+    await api.post('/api/fila/tratamentos', {
+      codigo_solicitacao: alvo.codigo_solicitacao,
+      codigo_exame: alvo.codigo_exame,
+      status: 'PENDENTE',
+      observacao: `Desfeito: o registro anterior era "${alvo.rotulo}".`,
+    });
+    await carregar();
+    const agora = await reabrirPainel(chave);
+    toast.info(agora ? `Registro desfeito. O paciente voltou para ${agora.posicao}º.` : 'Registro desfeito.');
+  } catch (e: any) {
+    toast.error(e?.response?.data?.detail ?? 'Não foi possível desfazer o registro.');
+  }
+}
+
+function avisoComDesfazer(mensagem: string, aoDesfazer: () => void) {
+  const toastId = toast.success(
+    { component: ToastDesfazer, props: { mensagem }, listeners: { desfazer: () => { toast.dismiss(toastId); aoDesfazer(); } } },
+    { timeout: 9000, closeOnClick: false },
+  );
 }
 
 async function aoAlterar(evento: EventoAlteracao) {
@@ -496,23 +556,23 @@ async function aoAlterar(evento: EventoAlteracao) {
   const antes = selecionado.value?.posicao;
   await carregar(evento.tipo === 'prioridade');
   const agora = dados.value?.grupos.find((g) => g.chave === chave);
+  const tratamento = evento.desfazerTratamento;
   if (!agora) {
-    toast.success(`${evento.mensagem} Paciente saiu da fila.`);
+    const mensagem = `${evento.mensagem} Paciente saiu da fila.`;
+    if (tratamento) avisoComDesfazer(mensagem, () => desfazerTratamento(tratamento, chave));
+    else toast.success(mensagem);
     selecionado.value = null;
+    await nextTick();
+    focarLinha(Math.max(0, (antes ?? 1) - 1));
     return;
   }
   const mensagem = antes && agora.posicao < antes
     ? `${evento.mensagem} Subiu de ${antes}º para ${agora.posicao}º.`
     : evento.mensagem;
-  if (evento.desfazerPrioridadeId) {
-    const id = evento.desfazerPrioridadeId;
-    const toastId = toast.success(
-      { component: ToastDesfazer, props: { mensagem }, listeners: { desfazer: () => { toast.dismiss(toastId); desfazerPrioridade(id, chave); } } },
-      { timeout: 9000, closeOnClick: false },
-    );
-  } else {
-    toast.success(mensagem);
-  }
+  const idPrioridade = evento.desfazerPrioridadeId;
+  if (idPrioridade) avisoComDesfazer(mensagem, () => desfazerPrioridade(idPrioridade, chave));
+  else if (tratamento) avisoComDesfazer(mensagem, () => desfazerTratamento(tratamento, chave));
+  else toast.success(mensagem);
   await nextTick();
   rolarAteLinha(chave);
 }
